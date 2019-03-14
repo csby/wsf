@@ -5,12 +5,14 @@ import "github.com/csby/wsf/server/configure"
 var cfg = &Config{
 	Server: configure.Configure{
 		Http: configure.Http{
-			Enabled: true,
-			Port:    8086,
+			Enabled:     true,
+			Port:        8086,
+			BehindProxy: false,
 		},
 		Https: configure.Https{
-			Enabled: true,
-			Port:    8446,
+			Enabled:     true,
+			Port:        8446,
+			BehindProxy: false,
 			Cert: configure.Certificate{
 				Ca: configure.CertificateCa{
 					File: caCrtFilePath,

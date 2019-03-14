@@ -7,7 +7,9 @@ import (
 	"github.com/csby/wsf/server/configure"
 	"github.com/csby/wsf/server/handler"
 	"github.com/csby/wsf/types"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -125,6 +127,9 @@ func (s *host) runHttp(handler http.Handler) error {
 		Addr:    addr,
 		Handler: handler,
 	}
+	if s.cfg.Http.BehindProxy {
+		s.httpServer.ProxyRemoteAddr = s.getRemoteAddr
+	}
 	err := s.httpServer.ListenAndServe()
 	s.httpServer = nil
 
@@ -157,6 +162,9 @@ func (s *host) runHttps(handler http.Handler) error {
 			ClientAuth:   tls.NoClientCert,
 		},
 	}
+	if s.cfg.Https.BehindProxy {
+		s.httpsServer.ProxyRemoteAddr = s.getRemoteAddr
+	}
 	if s.cfg.Https.RequestClientCert {
 		s.httpsServer.TLSConfig.ClientAuth = tls.RequireAndVerifyClientCert
 	}
@@ -187,4 +195,49 @@ func (s *host) runTcp() error {
 	s.LogInfo("tcp server running on \"", addr, "\"")
 
 	return nil
+}
+
+func (s *host) getRemoteAddr(conn net.Conn) string {
+	if len(s.cfg.Proxy) > 0 {
+		addr := fmt.Sprint(conn.RemoteAddr())
+		ip, _, _ := net.SplitHostPort(addr)
+		if len(ip) > 0 {
+			if ip != s.cfg.Proxy {
+				return addr
+			}
+		}
+	}
+
+	rawConn := conn
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		rawConn = tlsConn.RawConn()
+	}
+
+	buf := make([]byte, 1)
+	sb := &strings.Builder{}
+	for {
+		_, e := rawConn.Read(buf)
+		if e != nil {
+			return ""
+		}
+
+		if buf[0] == '\n' {
+			break
+		}
+		if buf[0] == '\r' {
+			continue
+		}
+
+		sb.Write(buf)
+	}
+
+	// PROXY family srcIP srcPort targetIP targetPort
+	// PROXY TCP4 192.168.123.254 12955 192.168.123.81 8088
+	proxy := sb.String()
+	vs := strings.Split(proxy, " ")
+	if len(vs) > 3 {
+		return fmt.Sprintf("%s:%s", vs[2], vs[3])
+	} else {
+		return ""
+	}
 }
