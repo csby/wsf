@@ -6,12 +6,17 @@ import (
 	"github.com/kardianos/service"
 )
 
-func NewServer(log types.Log, host types.Host, serviceName string) (types.Server, error) {
+func NewServer(log types.Log, host types.Host, serviceName string, serviceArguments ...string) (types.Server, error) {
 	instance := &server{}
 	instance.SetLog(log)
 	instance.program.server = host
 
-	svc, err := service.New(&instance.program, &service.Config{Name: serviceName, DisplayName: serviceName})
+	cfg := &service.Config{
+		Name:        serviceName,
+		DisplayName: serviceName,
+		Arguments:   serviceArguments,
+	}
+	svc, err := service.New(&instance.program, cfg)
 	if err != nil {
 		return nil, err
 	}
