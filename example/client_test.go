@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/csby/security/certificate"
 	"github.com/csby/wsf/client"
+	"github.com/csby/wsf/doc/web"
 	"github.com/csby/wsf/types"
 	"net/http"
 	"sync"
@@ -42,6 +43,7 @@ func (s *Client) Run() <-chan error {
 	go func() {
 		defer s.wg.Done()
 		s.runTestApi()
+		s.runTestDoc()
 	}()
 
 	ch := make(chan error)
@@ -55,6 +57,7 @@ func (s *Client) Run() <-chan error {
 }
 
 func (s *Client) runTestApi() {
+	// http
 	httpClient := client.Http{}
 	url := s.getTestApiUrl("http", uriHello)
 	_, output, connState, _, err := httpClient.PostJson(url, nil)
@@ -77,6 +80,7 @@ func (s *Client) runTestApi() {
 		}
 	}
 
+	// https
 	url = s.getTestApiUrl("https", uriHello)
 	_, output, connState, _, err = httpClient.PostJson(url, nil)
 	if err == nil {
@@ -114,10 +118,63 @@ func (s *Client) runTestApi() {
 	}
 }
 
+func (s *Client) runTestDoc() {
+	httpClient := client.Http{}
+	url := s.getTestDocUrl("http", web.ApiPathCatalogTree)
+	_, output, connState, _, err := httpClient.PostJson(url, nil)
+	if err != nil {
+		log.Error("test doc api catalog tree fail: ", err)
+	} else {
+		if connState != nil {
+			log.Error("connState: ", connState)
+		}
+		result := &types.Result{}
+		err = result.Unmarshal(output)
+		if err != nil {
+			log.Error("test doc api catalog tree fail: ", err)
+		} else {
+			log.Info("test doc api catalog tree success")
+			fmt.Println(result.FormatString())
+			if result.Code != 0 {
+				log.Error("test doc api catalog tree fail: error code = ", result.Code)
+			}
+		}
+	}
+
+	url = s.getTestDocUrl("http", "/function/1867033c")
+	_, output, connState, _, err = httpClient.PostJson(url, nil)
+	if err != nil {
+		log.Error("test doc api function fail: ", err)
+	} else {
+		if connState != nil {
+			log.Error("connState: ", connState)
+		}
+		result := &types.Result{}
+		err = result.Unmarshal(output)
+		if err != nil {
+			log.Error("test doc api function fail: ", err)
+		} else {
+			log.Info("test doc api function success")
+			fmt.Println(result.FormatString())
+			if result.Code != 0 {
+				log.Error("test doc api function fail: error code = ", result.Code)
+			}
+		}
+	}
+}
+
 func (s *Client) getTestApiUrl(schema, uri string) string {
 	port := cfg.Server.Http.Port
 	if schema == "https" {
 		port = cfg.Server.Https.Port
 	}
-	return fmt.Sprintf("%s://localhost:%d%s%s", schema, port, testPath.Prefix, uri)
+	return fmt.Sprintf("%s://localhost:%d%s", schema, port, testPath.New(uri).Path())
+}
+
+func (s *Client) getTestDocUrl(schema, uri string) string {
+	port := cfg.Server.Http.Port
+	if schema == "https" {
+		port = cfg.Server.Https.Port
+	}
+	return fmt.Sprintf("%s://localhost:%d%s%s", schema, port, web.ApiPath, uri)
 }

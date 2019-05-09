@@ -7,7 +7,6 @@ const (
 type Function interface {
 	SetNote(v string)
 	SetTokenType(v int)
-	SetWebSocket(v bool)
 	SetInputContentType(v string)
 	AddInputHeader(required bool, name, note, defaultValue string, optionValues ...string)
 	ClearInputHeader()
@@ -21,7 +20,7 @@ type Function interface {
 
 type Catalog interface {
 	AddChild(name string) Catalog
-	AddFunction(method, path, name string) Function
+	AddFunction(method string, path HttpPath, name string) Function
 }
 
 type Doc interface {

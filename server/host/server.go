@@ -10,6 +10,7 @@ func NewServer(log types.Log, host types.Host, serviceName string, serviceArgume
 	instance := &server{}
 	instance.SetLog(log)
 	instance.program.server = host
+	instance.serviceName = serviceName
 
 	cfg := &service.Config{
 		Name:        serviceName,
@@ -28,8 +29,13 @@ func NewServer(log types.Log, host types.Host, serviceName string, serviceArgume
 type server struct {
 	types.Base
 
-	program program
-	service service.Service
+	program     program
+	service     service.Service
+	serviceName string
+}
+
+func (s *server) ServiceName() string {
+	return s.serviceName
 }
 
 func (s *server) Interactive() bool {

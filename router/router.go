@@ -74,22 +74,28 @@ func (s *Router) Document() types.Doc {
 	return s.Doc
 }
 
-func (r *Router) GET(path string, routerHandle types.RouterHandle, docHandle types.DocHandle) {
-	r.Handle("GET", path, routerHandle, docHandle)
+func (r *Router) GET(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+	r.Handle("GET", httpPath, preHandle, routerHandle, docHandle)
 }
 
-func (r *Router) POST(path string, routerHandle types.RouterHandle, docHandle types.DocHandle) {
-	r.Handle("POST", path, routerHandle, docHandle)
+func (r *Router) POST(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+	r.Handle("POST", httpPath, preHandle, routerHandle, docHandle)
 }
 
-func (r *Router) ServeFiles(path string, root http.FileSystem, docHandle types.DocHandle) {
+func (r *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHandle, root http.FileSystem, docHandle types.DocHandle) {
+	if httpPath == nil {
+		panic("http path is nil")
+	}
+
+	path := httpPath.Path()
 	if len(path) < 10 || path[len(path)-10:] != "/*filepath" {
 		panic("path must end with /*filepath in path '" + path + "'")
 	}
 
 	fileServer := http.FileServer(root)
 
-	r.GET(path,
+	r.GET(httpPath,
+		preHandle,
 		func(w http.ResponseWriter, req *http.Request, ps types.Params, _ types.Assistant) {
 			req.URL.Path = ps.ByName("filepath")
 			fileServer.ServeHTTP(w, req)
@@ -97,7 +103,12 @@ func (r *Router) ServeFiles(path string, root http.FileSystem, docHandle types.D
 		docHandle)
 }
 
-func (r *Router) Handle(method, path string, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+func (r *Router) Handle(method string, httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+	if httpPath == nil {
+		panic("http path is nil")
+	}
+
+	path := httpPath.Path()
 	if path[0] != '/' {
 		panic("path must begin with '/' in path '" + path + "'")
 	}
@@ -113,13 +124,13 @@ func (r *Router) Handle(method, path string, routerHandle types.RouterHandle, do
 	}
 
 	// http
-	root.addRoute(path, routerHandle)
+	root.addRoute(path, routerHandle, preHandle)
 
 	// document
 	if docHandle != nil {
 		if r.Doc != nil {
 			if r.Doc.Enable() {
-				docHandle(r.Doc, method, path)
+				docHandle(r.Doc, method, httpPath)
 			}
 		}
 	}
@@ -133,7 +144,12 @@ func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types
 	path := req.URL.Path
 
 	if root := r.trees[req.Method]; root != nil {
-		if handle, ps, tsr := root.getValue(path); handle != nil {
+		if handle, preHandle, ps, tsr := root.getValue(path); handle != nil {
+			if preHandle != nil {
+				if preHandle(w, req, ps, assistant) {
+					return
+				}
+			}
 			handle(w, req, ps, assistant)
 			return
 		} else if req.Method != "CONNECT" && path != "/" {
@@ -205,11 +221,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.Serve(w, req, nil)
 }
 
-func (r *Router) Lookup(method, path string) (types.RouterHandle, Params, bool) {
+func (r *Router) Lookup(method, path string) (types.RouterHandle, types.RouterPreHandle, Params, bool) {
 	if root := r.trees[method]; root != nil {
 		return root.getValue(path)
 	}
-	return nil, nil, false
+	return nil, nil, nil, false
 }
 
 func (r *Router) recv(w http.ResponseWriter, req *http.Request) {
@@ -239,7 +255,7 @@ func (r *Router) allowed(path, reqMethod string) (allow string) {
 				continue
 			}
 
-			handle, _, _ := r.trees[method].getValue(path)
+			handle, _, _, _ := r.trees[method].getValue(path)
 			if handle != nil {
 				// add request method to list of allowed methods
 				if len(allow) == 0 {

@@ -1,6 +1,7 @@
 package types
 
 type Server interface {
+	ServiceName() string
 	Interactive() bool
 	Run() error
 	Restart() error

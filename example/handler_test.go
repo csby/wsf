@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	testPath = types.Path{Prefix: "/test"}
+	testPath = types.Path{Prefix: "/test", TokenKind: 3, DefaultShortenUrl: true, DefaultTokenType: 1}
 )
 
 type HttpHandler struct {
@@ -30,7 +30,7 @@ func (s *HttpHandler) Map(router types.Router) {
 
 	s.controller = &Controller{}
 
-	router.POST(testPath.Path(uriHello), s.controller.Hello, s.controller.HelloDoc)
+	router.POST(testPath.New(uriHello), nil, s.controller.Hello, s.controller.HelloDoc)
 
 	if cfg.Server.Document.Enabled {
 		docHandler := web.NewHandler(cfg.Server.Document.Root, web.SitePath, web.ApiPath)

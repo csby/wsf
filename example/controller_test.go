@@ -12,7 +12,7 @@ func (s *Controller) Hello(w http.ResponseWriter, r *http.Request, p types.Param
 	a.Success("Hello")
 }
 
-func (s *Controller) HelloDoc(doc types.Doc, method, path string) {
+func (s *Controller) HelloDoc(doc types.Doc, method string, path types.HttpPath) {
 	catalog := doc.AddCatalog("UnitTest").AddChild("Restful")
 	function := catalog.AddFunction(method, path, "Hello World")
 	function.SetNote("restful api, return data with 'Hello'")

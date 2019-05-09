@@ -20,6 +20,7 @@ type Function struct {
 	Method        string      `json:"method"`        // 接口方法
 	Path          string      `json:"path"`          // 接口地址
 	FullPath      string      `json:"fullPath"`      // 接口地址
+	TokenKind     int         `json:"tokenKind"`     // 凭证类别
 	TokenType     int         `json:"tokenType"`     // 凭证类型
 	WebSocket     bool        `json:"webSocket"`     // 是否为websocket接口
 	InputHeaders  []*Header   `json:"inputHeaders"`  // 输入头部
@@ -41,10 +42,6 @@ func (s *Function) SetTokenType(v int) {
 	}
 	s.TokenType = v
 	s.tokenTypeChanged()
-}
-
-func (s *Function) SetWebSocket(v bool) {
-	s.WebSocket = v
 }
 
 func (s *Function) SetInputContentType(v string) {

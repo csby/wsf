@@ -1,11 +1,11 @@
 package doc
 
 import (
-	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"github.com/csby/wsf/doc/model"
 	"github.com/csby/wsf/types"
+	"hash/adler32"
 )
 
 func NewDoc(enable bool) types.Doc {
@@ -80,7 +80,7 @@ func (s *doc) onNewFunction(fun *model.Function) {
 }
 
 func (s *doc) generateFunctionId(method, path string) string {
-	h := md5.New()
+	h := adler32.New()
 	_, err := h.Write([]byte(method + path))
 	if err != nil {
 		return path

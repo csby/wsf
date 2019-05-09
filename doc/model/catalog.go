@@ -45,7 +45,8 @@ func (s *Catalog) AddChild(name string) types.Catalog {
 	return item
 }
 
-func (s *Catalog) AddFunction(method, path, name string) types.Function {
+func (s *Catalog) AddFunction(method string, httpPath types.HttpPath, name string) types.Function {
+	path := httpPath.Path()
 	item := &Catalog{Name: name}
 	item.Children = make(CatalogSlice, 0)
 	item.Type = typeFunction
@@ -55,10 +56,17 @@ func (s *Catalog) AddFunction(method, path, name string) types.Function {
 	s.Children = append(s.Children, item)
 	sort.Sort(s.Children)
 
-	fuc := &Function{Method: method, Path: path, Name: name}
+	fuc := &Function{
+		Method:    method,
+		Path:      path,
+		Name:      name,
+		TokenKind: httpPath.TokenKind(),
+		WebSocket: httpPath.IsWebSocket(),
+	}
 	fuc.InputHeaders = make([]*Header, 0)
 	fuc.InputQueries = make([]*Query, 0)
 	fuc.OutputHeaders = make([]*Header, 0)
+	fuc.SetTokenType(httpPath.TokenType())
 	if method == "POST" {
 		fuc.SetInputContentType(types.ContentTypeJson)
 		fuc.AddOutputHeader("access-control-allow-origin", "*")
