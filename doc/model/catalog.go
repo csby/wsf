@@ -57,11 +57,16 @@ func (s *Catalog) AddFunction(method string, httpPath types.HttpPath, name strin
 	sort.Sort(s.Children)
 
 	fuc := &Function{
-		Method:    method,
-		Path:      path,
-		Name:      name,
-		TokenKind: httpPath.TokenKind(),
-		WebSocket: httpPath.IsWebSocket(),
+		Method:      method,
+		Path:        path,
+		Name:        name,
+		TokenPlace:  httpPath.TokenPlace(),
+		WebSocket:   httpPath.IsWebSocket(),
+		TokenUI:     httpPath.TokenUI(),
+		TokenCreate: httpPath.TokenCreate(),
+	}
+	if fuc.WebSocket {
+		fuc.Method = "WEBSOCKET"
 	}
 	fuc.InputHeaders = make([]*Header, 0)
 	fuc.InputQueries = make([]*Query, 0)

@@ -9,32 +9,48 @@ import (
 
 type HttpPath interface {
 	Path() string
-	TokenKind() int
 	TokenType() int
+	TokenPlace() int
 	IsWebSocket() bool
 	IsShortenPath() bool
 	RawPath() string
+	TokenUI() func() []TokenUI
+	TokenCreate() func(items []TokenAuth, a Assistant) (string, ErrorCode, error)
+
+	UseShortenPath(shortenPath bool) HttpPath
+	SetWebSocket(webSocket bool) HttpPath
+	SetTokenPlace(tokenPlace int) HttpPath
+	SetTokenType(tokenType int) HttpPath
+	SetTokenUI(tokenUI func() []TokenUI) HttpPath
+	SetTokenCreate(tokenCreate func(items []TokenAuth, a Assistant) (string, ErrorCode, error)) HttpPath
 }
 
 type httpPath struct {
 	rawPath       string
 	path          string
-	tokenKind     int
 	tokenType     int
+	tokenPlace    int
 	isWebSocket   bool
 	isShortenPath bool
+
+	tokenUI     func() []TokenUI
+	tokenCreate func(items []TokenAuth, a Assistant) (string, ErrorCode, error)
 }
 
 func (s *httpPath) Path() string {
-	return s.path
-}
+	if s.isShortenPath {
+		return s.toShortenUrl(s.path)
+	}
 
-func (s *httpPath) TokenKind() int {
-	return s.tokenKind
+	return s.path
 }
 
 func (s *httpPath) TokenType() int {
 	return s.tokenType
+}
+
+func (s *httpPath) TokenPlace() int {
+	return s.tokenPlace
 }
 
 func (s *httpPath) IsWebSocket() bool {
@@ -49,19 +65,64 @@ func (s *httpPath) RawPath() string {
 	return s.rawPath
 }
 
-type Path struct {
-	Prefix            string
-	TokenKind         int
-	DefaultTokenType  int
-	DefaultShortenUrl bool
-
-	OnNewPath func(path HttpPath)
+func (s *httpPath) TokenUI() func() []TokenUI {
+	return s.tokenUI
 }
 
-// params[0]: IsWebSocket([0: false; 1: true])
-// params[1]: ShortenUrl(replace DefaultShortenUrl[0: false; 1: true])
-// params[2]: TokenType(replace DefaultTokenType)
-func (s *Path) New(path string, params ...int) HttpPath {
+func (s *httpPath) TokenCreate() func(items []TokenAuth, a Assistant) (string, ErrorCode, error) {
+	return s.tokenCreate
+}
+
+func (s *httpPath) UseShortenPath(shortenPath bool) HttpPath {
+	s.isShortenPath = shortenPath
+	return s
+}
+
+func (s *httpPath) SetWebSocket(webSocket bool) HttpPath {
+	s.isWebSocket = webSocket
+	return s
+}
+
+func (s *httpPath) SetTokenPlace(tokenPlace int) HttpPath {
+	s.tokenPlace = tokenPlace
+	return s
+}
+
+func (s *httpPath) SetTokenType(tokenType int) HttpPath {
+	s.tokenType = tokenType
+	return s
+}
+
+func (s *httpPath) SetTokenUI(tokenUI func() []TokenUI) HttpPath {
+	s.tokenUI = tokenUI
+	return s
+}
+
+func (s *httpPath) SetTokenCreate(tokenCreate func(items []TokenAuth, a Assistant) (string, ErrorCode, error)) HttpPath {
+	s.tokenCreate = tokenCreate
+	return s
+}
+
+func (s *httpPath) toShortenUrl(url string) string {
+	h := adler32.New()
+	_, err := h.Write([]byte(url))
+	if err != nil {
+		return url
+	}
+
+	return fmt.Sprintf("/%s", hex.EncodeToString(h.Sum(nil)))
+}
+
+type Path struct {
+	Prefix             string
+	DefaultTokenType   int
+	DefaultTokenPlace  int
+	DefaultShortenUrl  bool
+	DefaultTokenUI     func() []TokenUI
+	DefaultTokenCreate func(items []TokenAuth, a Assistant) (string, ErrorCode, error)
+}
+
+func (s *Path) New(path string) HttpPath {
 	sb := &strings.Builder{}
 	sb.WriteString(s.Prefix)
 	sb.WriteString(path)
@@ -70,47 +131,13 @@ func (s *Path) New(path string, params ...int) HttpPath {
 	hp := &httpPath{
 		rawPath:       rawPath,
 		path:          rawPath,
-		tokenKind:     s.TokenKind,
 		tokenType:     s.DefaultTokenType,
+		tokenPlace:    s.DefaultTokenPlace,
 		isWebSocket:   false,
 		isShortenPath: s.DefaultShortenUrl,
+		tokenUI:       s.DefaultTokenUI,
+		tokenCreate:   s.DefaultTokenCreate,
 	}
 
-	paramLen := len(params)
-	if paramLen > 0 {
-		if params[0] != 0 {
-			hp.isWebSocket = true
-		} else {
-			hp.isWebSocket = true
-		}
-	}
-	if paramLen > 1 {
-		if params[1] != 0 {
-			hp.isShortenPath = true
-		} else {
-			hp.isShortenPath = false
-		}
-	}
-	if paramLen > 2 {
-		hp.tokenType = params[2]
-	}
-
-	if hp.isShortenPath {
-		hp.path = s.toShortenUrl(rawPath)
-	}
-
-	if s.OnNewPath != nil {
-		s.OnNewPath(hp)
-	}
 	return hp
-}
-
-func (s *Path) toShortenUrl(url string) string {
-	h := adler32.New()
-	_, err := h.Write([]byte(url))
-	if err != nil {
-		return url
-	}
-
-	return fmt.Sprintf("/%s", hex.EncodeToString(h.Sum(nil)))
 }

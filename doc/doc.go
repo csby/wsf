@@ -6,6 +6,7 @@ import (
 	"github.com/csby/wsf/doc/model"
 	"github.com/csby/wsf/types"
 	"hash/adler32"
+	"strings"
 )
 
 func NewDoc(enable bool) types.Doc {
@@ -54,14 +55,50 @@ func (s *doc) Catalogs() interface{} {
 	return s.catalogs
 }
 
-func (s *doc) Function(id, addr string) (interface{}, error) {
+func (s *doc) Function(id, schema, host string) (interface{}, error) {
 	fun, ok := s.functions[id]
 	if ok {
-		fun.FullPath = fmt.Sprintf("%s%s", addr, fun.Path)
+		if fun.WebSocket {
+			if strings.ToLower(schema) == "https" {
+				fun.FullPath = fmt.Sprintf("%s://%s%s", "wss", host, fun.Path)
+			} else {
+				fun.FullPath = fmt.Sprintf("%s://%s%s", "ws", host, fun.Path)
+			}
+		} else {
+			fun.FullPath = fmt.Sprintf("%s://%s%s", schema, host, fun.Path)
+		}
 		return fun, nil
 	} else {
-		return nil, fmt.Errorf("id not '%s' exist", id)
+		return nil, fmt.Errorf("id '%s' not exist", id)
 	}
+}
+
+func (s *doc) TokenUI(id string) (interface{}, error) {
+	fun, ok := s.functions[id]
+	if !ok {
+		return nil, fmt.Errorf("id '%s' not exist", id)
+	}
+
+	ui := fun.TokenUI
+	if ui == nil {
+		return nil, fmt.Errorf("ui function (id = '%s') not implement", id)
+	}
+
+	return ui(), nil
+}
+
+func (s *doc) TokenCreate(id string, items []types.TokenAuth, a types.Assistant) (string, types.ErrorCode, error) {
+	fun, ok := s.functions[id]
+	if !ok {
+		return "", types.ErrInput, fmt.Errorf("id '%s' not exist", id)
+	}
+
+	create := fun.TokenCreate
+	if create == nil {
+		return "", types.ErrInternal, fmt.Errorf("create function (id = '%s') not implement", id)
+	}
+
+	return create(items, a)
 }
 
 func (s *doc) onNewFunction(fun *model.Function) {

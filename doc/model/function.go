@@ -20,8 +20,8 @@ type Function struct {
 	Method        string      `json:"method"`        // 接口方法
 	Path          string      `json:"path"`          // 接口地址
 	FullPath      string      `json:"fullPath"`      // 接口地址
-	TokenKind     int         `json:"tokenKind"`     // 凭证类别
 	TokenType     int         `json:"tokenType"`     // 凭证类型
+	TokenPlace    int         `json:"-"`             // 凭证位置
 	WebSocket     bool        `json:"webSocket"`     // 是否为websocket接口
 	InputHeaders  []*Header   `json:"inputHeaders"`  // 输入头部
 	InputQueries  []*Query    `json:"inputQueries"`  // 输入参数
@@ -30,6 +30,9 @@ type Function struct {
 	OutputHeaders []*Header   `json:"outputHeaders"` // 输出头部
 	OutputModel   *Argument   `json:"outputModel"`   // 输出数据
 	OutputSample  interface{} `json:"outputSample"`  // 输出数据示例
+
+	TokenUI     func() []types.TokenUI                                                            `json:"-"`
+	TokenCreate func(items []types.TokenAuth, a types.Assistant) (string, types.ErrorCode, error) `json:"-"`
 }
 
 func (s *Function) SetNote(v string) {
@@ -227,29 +230,31 @@ func (s *Function) GetOutputHeader(name string) *Header {
 
 func (s *Function) tokenTypeChanged() {
 	if s.TokenType != types.TokenTypeNone {
-		inputHeader := s.GetInputHeader(types.TokenName)
-		if inputHeader != nil {
-			inputHeader.Token = true
-		} else {
+		if s.TokenPlace == types.TokenPlaceQuery {
+			s.RemoveInputHeader(types.TokenName)
 			inputQuery := s.GetInputQuery(types.TokenName)
 			if inputQuery != nil {
 				inputQuery.Token = true
 			} else {
-				if s.Method == "GET" {
-					s.InputQueries = append(s.InputQueries, &Query{
-						Name:     types.TokenName,
-						Note:     "凭证",
-						Required: true,
-						Token:    true,
-					})
-				} else {
-					s.InputHeaders = append(s.InputHeaders, &Header{
-						Name:     types.TokenName,
-						Note:     "凭证",
-						Required: true,
-						Token:    true,
-					})
-				}
+				s.InputQueries = append(s.InputQueries, &Query{
+					Name:     types.TokenName,
+					Note:     "凭证",
+					Required: true,
+					Token:    true,
+				})
+			}
+		} else {
+			s.RemoveInputQuery(types.TokenName)
+			inputHeader := s.GetInputHeader(types.TokenName)
+			if inputHeader != nil {
+				inputHeader.Token = true
+			} else {
+				s.InputHeaders = append(s.InputHeaders, &Header{
+					Name:     types.TokenName,
+					Note:     "凭证",
+					Required: true,
+					Token:    true,
+				})
 			}
 		}
 	} else {

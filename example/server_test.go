@@ -16,7 +16,7 @@ func (s *Server) Run(starter func(server types.Server)) error {
 		return err
 	}
 	if !server.Interactive() {
-		httpHandler.restart = server.Restart
+		httpHandlerExtend.restart = server.Restart
 	}
 
 	if starter != nil {

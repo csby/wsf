@@ -74,15 +74,15 @@ func (s *Router) Document() types.Doc {
 	return s.Doc
 }
 
-func (r *Router) GET(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
-	r.Handle("GET", httpPath, preHandle, routerHandle, docHandle)
+func (s *Router) GET(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+	s.Handle("GET", httpPath, preHandle, routerHandle, docHandle)
 }
 
-func (r *Router) POST(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
-	r.Handle("POST", httpPath, preHandle, routerHandle, docHandle)
+func (s *Router) POST(httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+	s.Handle("POST", httpPath, preHandle, routerHandle, docHandle)
 }
 
-func (r *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHandle, root http.FileSystem, docHandle types.DocHandle) {
+func (s *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHandle, root http.FileSystem, docHandle types.DocHandle) {
 	if httpPath == nil {
 		panic("http path is nil")
 	}
@@ -94,7 +94,7 @@ func (r *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHa
 
 	fileServer := http.FileServer(root)
 
-	r.GET(httpPath,
+	s.GET(httpPath,
 		preHandle,
 		func(w http.ResponseWriter, req *http.Request, ps types.Params, _ types.Assistant) {
 			req.URL.Path = ps.ByName("filepath")
@@ -103,7 +103,7 @@ func (r *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHa
 		docHandle)
 }
 
-func (r *Router) Handle(method string, httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
+func (s *Router) Handle(method string, httpPath types.HttpPath, preHandle types.RouterPreHandle, routerHandle types.RouterHandle, docHandle types.DocHandle) {
 	if httpPath == nil {
 		panic("http path is nil")
 	}
@@ -113,14 +113,14 @@ func (r *Router) Handle(method string, httpPath types.HttpPath, preHandle types.
 		panic("path must begin with '/' in path '" + path + "'")
 	}
 
-	if r.trees == nil {
-		r.trees = make(map[string]*node)
+	if s.trees == nil {
+		s.trees = make(map[string]*node)
 	}
 
-	root := r.trees[method]
+	root := s.trees[method]
 	if root == nil {
 		root = new(node)
-		r.trees[method] = root
+		s.trees[method] = root
 	}
 
 	// http
@@ -128,22 +128,22 @@ func (r *Router) Handle(method string, httpPath types.HttpPath, preHandle types.
 
 	// document
 	if docHandle != nil {
-		if r.Doc != nil {
-			if r.Doc.Enable() {
-				docHandle(r.Doc, method, httpPath)
+		if s.Doc != nil {
+			if s.Doc.Enable() {
+				docHandle(s.Doc, method, httpPath)
 			}
 		}
 	}
 }
 
-func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types.Assistant) {
-	if r.PanicHandler != nil {
-		defer r.recv(w, req)
+func (s *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types.Assistant) {
+	if s.PanicHandler != nil {
+		defer s.recv(w, req)
 	}
 
 	path := req.URL.Path
 
-	if root := r.trees[req.Method]; root != nil {
+	if root := s.trees[req.Method]; root != nil {
 		if handle, preHandle, ps, tsr := root.getValue(path); handle != nil {
 			if preHandle != nil {
 				if preHandle(w, req, ps, assistant) {
@@ -160,7 +160,7 @@ func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types
 				code = 307
 			}
 
-			if tsr && r.RedirectTrailingSlash {
+			if tsr && s.RedirectTrailingSlash {
 				if len(path) > 1 && path[len(path)-1] == '/' {
 					req.URL.Path = path[:len(path)-1]
 				} else {
@@ -171,10 +171,10 @@ func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types
 			}
 
 			// Try to fix the request path
-			if r.RedirectFixedPath {
+			if s.RedirectFixedPath {
 				fixedPath, found := root.findCaseInsensitivePath(
 					CleanPath(path),
-					r.RedirectTrailingSlash,
+					s.RedirectTrailingSlash,
 				)
 				if found {
 					req.URL.Path = string(fixedPath)
@@ -185,19 +185,19 @@ func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types
 		}
 	}
 
-	if req.Method == "OPTIONS" && r.HandleOPTIONS {
+	if req.Method == "OPTIONS" && s.HandleOPTIONS {
 		// Handle OPTIONS requests
-		if allow := r.allowed(path, req.Method); len(allow) > 0 {
+		if allow := s.allowed(path, req.Method); len(allow) > 0 {
 			w.Header().Set("Allow", allow)
 			return
 		}
 	} else {
 		// Handle 405
-		if r.HandleMethodNotAllowed {
-			if allow := r.allowed(path, req.Method); len(allow) > 0 {
+		if s.HandleMethodNotAllowed {
+			if allow := s.allowed(path, req.Method); len(allow) > 0 {
 				w.Header().Set("Allow", allow)
-				if r.MethodNotAllowed != nil {
-					r.MethodNotAllowed.ServeHTTP(w, req)
+				if s.MethodNotAllowed != nil {
+					s.MethodNotAllowed.ServeHTTP(w, req)
 				} else {
 					http.Error(w,
 						http.StatusText(http.StatusMethodNotAllowed),
@@ -210,33 +210,33 @@ func (r *Router) Serve(w http.ResponseWriter, req *http.Request, assistant types
 	}
 
 	// Handle 404
-	if r.NotFound != nil {
-		r.NotFound(w, req, assistant)
+	if s.NotFound != nil {
+		s.NotFound(w, req, assistant)
 	} else {
 		http.NotFound(w, req)
 	}
 }
 
-func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r.Serve(w, req, nil)
+func (s *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	s.Serve(w, req, nil)
 }
 
-func (r *Router) Lookup(method, path string) (types.RouterHandle, types.RouterPreHandle, Params, bool) {
-	if root := r.trees[method]; root != nil {
+func (s *Router) Lookup(method, path string) (types.RouterHandle, types.RouterPreHandle, Params, bool) {
+	if root := s.trees[method]; root != nil {
 		return root.getValue(path)
 	}
 	return nil, nil, nil, false
 }
 
-func (r *Router) recv(w http.ResponseWriter, req *http.Request) {
+func (s *Router) recv(w http.ResponseWriter, req *http.Request) {
 	if rcv := recover(); rcv != nil {
-		r.PanicHandler(w, req, rcv)
+		s.PanicHandler(w, req, rcv)
 	}
 }
 
-func (r *Router) allowed(path, reqMethod string) (allow string) {
+func (s *Router) allowed(path, reqMethod string) (allow string) {
 	if path == "*" { // server-wide
-		for method := range r.trees {
+		for method := range s.trees {
 			if method == "OPTIONS" {
 				continue
 			}
@@ -249,13 +249,13 @@ func (r *Router) allowed(path, reqMethod string) (allow string) {
 			}
 		}
 	} else { // specific path
-		for method := range r.trees {
+		for method := range s.trees {
 			// Skip the requested method - we already tried this one
 			if method == reqMethod || method == "OPTIONS" {
 				continue
 			}
 
-			handle, _, _, _ := r.trees[method].getValue(path)
+			handle, _, _, _ := s.trees[method].getValue(path)
 			if handle != nil {
 				// add request method to list of allowed methods
 				if len(allow) == 0 {

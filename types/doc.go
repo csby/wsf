@@ -27,6 +27,8 @@ type Doc interface {
 	Enable() bool
 	AddCatalog(name string) Catalog
 	Catalogs() interface{}
-	Function(id, addr string) (interface{}, error)
+	Function(id, schema, host string) (interface{}, error)
 	OnFunctionReady(f func(index int, method, path, name string))
+	TokenUI(id string) (interface{}, error)
+	TokenCreate(id string, items []TokenAuth, a Assistant) (string, ErrorCode, error)
 }

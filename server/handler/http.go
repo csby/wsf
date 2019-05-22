@@ -80,6 +80,10 @@ func (s *httpHandler) postRouting(w http.ResponseWriter, r *http.Request, a *htt
 			s.LogError("postRouting", err)
 		}
 	}()
+
+	if s.handler != nil {
+		s.handler.PostRouting(w, r, a)
+	}
 }
 
 func (s *httpHandler) newAssistant(w http.ResponseWriter, r *http.Request) *httpAssistant {
@@ -121,5 +125,10 @@ func (s *httpHandler) restart() func() error {
 		return nil
 	}
 
-	return s.handler.Restart()
+	extend := s.handler.Extend()
+	if extend == nil {
+		return nil
+	}
+
+	return extend.Restart()
 }

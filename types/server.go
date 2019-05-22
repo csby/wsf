@@ -19,3 +19,8 @@ const (
 	ServerStatusRunning
 	ServerStatusStopped
 )
+
+type ServerInformation struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
