@@ -1,8 +1,16 @@
 package router
 
 import (
+	"compress/flate"
+	"compress/gzip"
+	"fmt"
 	"github.com/csby/wsf/types"
+	"io"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var _ http.Handler = New()
@@ -92,13 +100,36 @@ func (s *Router) ServeFiles(httpPath types.HttpPath, preHandle types.RouterPreHa
 		panic("path must end with /*filepath in path '" + path + "'")
 	}
 
-	fileServer := http.FileServer(root)
-
 	s.GET(httpPath,
 		preHandle,
-		func(w http.ResponseWriter, req *http.Request, ps types.Params, _ types.Assistant) {
-			req.URL.Path = ps.ByName("filepath")
-			fileServer.ServeHTTP(w, req)
+		func(w http.ResponseWriter, r *http.Request, ps types.Params, _ types.Assistant) {
+			r.URL.Path = ps.ByName("filepath")
+			acceptEncoding := r.Header.Get("Accept-Encoding")
+			if strings.Contains(acceptEncoding, "gzip") {
+				filePath := filepath.Join(fmt.Sprint(root), r.URL.Path)
+				contentType := mime.TypeByExtension(filepath.Ext(filePath))
+				if len(contentType) > 0 {
+					fileExisted := true
+					fi, err := os.Stat(filePath)
+					if err != nil {
+						if os.IsNotExist(err) {
+							fileExisted = false
+						}
+					} else {
+						if fi.IsDir() {
+							fileExisted = false
+						}
+					}
+					if fileExisted {
+						if s.serveFilesWithGZip(w, r, filePath, contentType) {
+							return
+						}
+					}
+				}
+			}
+
+			fileServer := http.FileServer(root)
+			fileServer.ServeHTTP(w, r)
 		},
 		docHandle)
 }
@@ -270,4 +301,23 @@ func (s *Router) allowed(path, reqMethod string) (allow string) {
 		allow += ", OPTIONS"
 	}
 	return
+}
+
+func (s *Router) serveFilesWithGZip(w http.ResponseWriter, r *http.Request, filePath, contentType string) bool {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Encoding", "gzip")
+	w.Header().Add("Vary", "Accept-Encoding")
+
+	gw, _ := gzip.NewWriterLevel(w, flate.BestCompression)
+	defer gw.Close()
+
+	io.Copy(gw, file)
+
+	return true
 }
