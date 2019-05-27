@@ -36,7 +36,7 @@ func (s *Http) Get(url string, argument interface{}) (output []byte, connState *
 	return
 }
 
-func (s *Http) PostJson(url string, argument interface{}) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
+func (s *Http) PostJson(url string, argument interface{}, headers ...Header) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
 	input = nil
 	var body io.Reader = nil
 	if argument != nil {
@@ -55,8 +55,20 @@ func (s *Http) PostJson(url string, argument interface{}) (input, output []byte,
 		}
 	}
 
+	req, e := http.NewRequest("POST", url, body)
+	if e != nil {
+		err = e
+		return
+	}
+	req.Header.Set("Content-Type", "application/json;charset=utf-8")
+	headerCount := len(headers)
+	for i := 0; i < headerCount; i++ {
+		header := headers[i]
+		req.Header.Add(header.Key, header.Value)
+	}
+
 	client := s.newClient()
-	resp, e := client.Post(url, "application/json;charset=utf-8", body)
+	resp, e := client.Do(req)
 	if e != nil {
 		err = e
 		return
@@ -74,7 +86,7 @@ func (s *Http) PostJson(url string, argument interface{}) (input, output []byte,
 	return
 }
 
-func (s *Http) PostXml(url string, argument interface{}) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
+func (s *Http) PostXml(url string, argument interface{}, headers ...Header) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
 	input = nil
 	var body io.Reader = nil
 	if argument != nil {
@@ -96,8 +108,19 @@ func (s *Http) PostXml(url string, argument interface{}) (input, output []byte, 
 		}
 	}
 
+	req, e := http.NewRequest("POST", url, body)
+	if e != nil {
+		err = e
+		return
+	}
+	req.Header.Set("Content-Type", "application/xml;charset=utf-8")
+	headerCount := len(headers)
+	for i := 0; i < headerCount; i++ {
+		header := headers[i]
+		req.Header.Add(header.Key, header.Value)
+	}
 	client := s.newClient()
-	resp, e := client.Post(url, "application/xml;charset=utf-8", body)
+	resp, e := client.Do(req)
 	if e != nil {
 		err = e
 		return
@@ -115,7 +138,7 @@ func (s *Http) PostXml(url string, argument interface{}) (input, output []byte, 
 	return
 }
 
-func (s *Http) PostSoap(url string, argument interface{}) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
+func (s *Http) PostSoap(url string, argument interface{}, headers ...Header) (input, output []byte, connState *tls.ConnectionState, statusCode int, err error) {
 	soap := &Soap{
 		Xsi:    "http://www.w3.org/2001/XMLSchema-instance",
 		Xsd:    "http://www.w3.org/2001/XMLSchema",
@@ -131,8 +154,19 @@ func (s *Http) PostSoap(url string, argument interface{}) (input, output []byte,
 	}
 	body := bytes.NewBuffer([]byte(input))
 
+	req, e := http.NewRequest("POST", url, body)
+	if e != nil {
+		err = e
+		return
+	}
+	req.Header.Set("Content-Type", "application/soap+xml;charset=utf-8")
+	headerCount := len(headers)
+	for i := 0; i < headerCount; i++ {
+		header := headers[i]
+		req.Header.Add(header.Key, header.Value)
+	}
 	client := s.newClient()
-	resp, e := client.Post(url, "application/soap+xml;charset=utf-8", body)
+	resp, e := client.Do(req)
 	if e != nil {
 		err = e
 		return
