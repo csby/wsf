@@ -70,12 +70,13 @@ func (s *Catalog) AddFunction(method string, httpPath types.HttpPath, name strin
 	}
 	fuc.InputHeaders = make([]*Header, 0)
 	fuc.InputQueries = make([]*Query, 0)
+	fuc.InputForms = make([]*Form, 0)
 	fuc.OutputHeaders = make([]*Header, 0)
 	fuc.SetTokenType(httpPath.TokenType())
 	if method == "POST" {
 		fuc.SetInputContentType(types.ContentTypeJson)
 		fuc.AddOutputHeader("access-control-allow-origin", "*")
-		fuc.AddOutputHeader("content-type", "application/json;charset=utf-8")
+		fuc.AddOutputHeader(headContentType, "application/json;charset=utf-8")
 	}
 	if s.onAddFunction != nil {
 		s.onAddFunction(fuc)

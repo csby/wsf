@@ -62,7 +62,7 @@ func TestHttp_PostXml(t *testing.T) {
 func TestHttp_PostSoap(t *testing.T) {
 	argument := &identity{
 		bodyData: bodyData{
-			XmlNs: "http://example.org/",
+			XmlNs: "http://tempuri.org/",
 		},
 		InputID: `{"username":"test1","password":"1"}`,
 	}

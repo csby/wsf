@@ -120,3 +120,10 @@ func (s *SvcArgs) Execute(server Server) {
 		os.Exit(24)
 	}
 }
+
+type SvcInfo struct {
+	Name     string   `json:"name" note:"服务名称"`
+	Version  string   `json:"version" note:"版本号"`
+	BootTime DateTime `json:"bootTime" note:"启动时间"`
+	Remark   string   `json:"remark" note:"说明"`
+}

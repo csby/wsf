@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	headContentType = "Content-Type"
+	headContentType = "content-type"
 )
 
 var (
@@ -25,6 +25,7 @@ type Function struct {
 	WebSocket     bool        `json:"webSocket"`     // 是否为websocket接口
 	InputHeaders  []*Header   `json:"inputHeaders"`  // 输入头部
 	InputQueries  []*Query    `json:"inputQueries"`  // 输入参数
+	InputForms    []*Form     `json:"inputForms"`    // 输入表单
 	InputModel    *Argument   `json:"inputModel"`    // 输入数据
 	InputSample   interface{} `json:"inputSample"`   // 输入数据示例
 	OutputHeaders []*Header   `json:"outputHeaders"` // 输出头部
@@ -110,6 +111,9 @@ func (s *Function) RemoveInputHeader(name string) {
 		if item.Name == types.TokenName {
 			continue
 		}
+		if item.Name == name {
+			continue
+		}
 
 		items = append(items, item)
 	}
@@ -144,6 +148,45 @@ func (s *Function) RemoveInputQuery(name string) {
 			continue
 		}
 		if item.Name == types.TokenName {
+			continue
+		}
+		if item.Name == name {
+			continue
+		}
+
+		items = append(items, item)
+	}
+
+	s.InputQueries = items
+}
+
+func (s *Function) AddInputForm(required bool, key, note string, valueKind int, defaultValue interface{}) {
+	form := s.GetInputForm(key)
+	if form != nil {
+		form.Required = required
+		form.Note = note
+		form.Value = defaultValue
+		form.ValueKind = valueKind
+	} else {
+		s.InputForms = append(s.InputForms, &Form{
+			Key:       key,
+			Note:      note,
+			Required:  required,
+			Value:     defaultValue,
+			ValueKind: valueKind,
+		})
+	}
+}
+
+func (s *Function) RemoveInputForm(key string) {
+	items := make([]*Query, 0)
+	c := len(s.InputQueries)
+	for i := 0; i < c; i++ {
+		item := s.InputQueries[i]
+		if item == nil {
+			continue
+		}
+		if item.Name == key {
 			continue
 		}
 
@@ -209,6 +252,18 @@ func (s *Function) GetInputQuery(name string) *Query {
 	for i := 0; i < c; i++ {
 		item := s.InputQueries[i]
 		if strings.ToLower(item.Name) == strings.ToLower(name) {
+			return item
+		}
+	}
+
+	return nil
+}
+
+func (s *Function) GetInputForm(key string) *Form {
+	c := len(s.InputForms)
+	for i := 0; i < c; i++ {
+		item := s.InputForms[i]
+		if strings.ToLower(item.Key) == strings.ToLower(key) {
 			return item
 		}
 	}
