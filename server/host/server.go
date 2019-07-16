@@ -15,7 +15,9 @@ func NewServer(log types.Log, host types.Host, serviceName string, serviceArgume
 	cfg := &service.Config{
 		Name:        serviceName,
 		DisplayName: serviceName,
-		Arguments:   serviceArguments,
+	}
+	if len(serviceArguments) > 0 {
+		cfg.Arguments = serviceArguments
 	}
 	svc, err := service.New(&instance.program, cfg)
 	if err != nil {
@@ -54,51 +56,39 @@ func (s *server) Run() error {
 	}
 }
 
-func (s *server) Restart() error {
-	if s.Interactive() {
-		return fmt.Errorf("not running as service")
-	} else {
-		return s.service.Restart()
+func (s *server) Shutdown() error {
+	if s.program.server == nil {
+		return fmt.Errorf("invalid host: nil")
 	}
+
+	return s.program.server.Close()
+}
+
+func (s *server) Restart() error {
+	return s.service.Restart()
 }
 
 func (s *server) Start() error {
-	if s.Interactive() {
-		return fmt.Errorf("not running as service")
-	} else {
-		return s.service.Start()
-	}
+	return s.service.Start()
 }
 
 func (s *server) Stop() error {
-	if s.Interactive() {
-		return s.program.server.Close()
-	} else {
-		return s.service.Stop()
-	}
+	return s.service.Stop()
 }
 
 func (s *server) Install() error {
-	if s.Interactive() {
-		return fmt.Errorf("not running as service")
-	} else {
-		return s.service.Install()
-	}
+	return s.service.Install()
 }
 
 func (s *server) Uninstall() error {
-	if s.Interactive() {
-		return fmt.Errorf("not running as service")
-	} else {
-		return s.service.Uninstall()
+	err := s.service.Stop()
+	if err != nil {
 	}
+
+	return s.service.Uninstall()
 }
 
 func (s *server) Status() (types.ServerStatus, error) {
-	if s.Interactive() {
-		return types.ServerStatusUnknown, fmt.Errorf("not running as service")
-	}
-
 	status, err := s.service.Status()
 	if err != nil {
 		return types.ServerStatusUnknown, err

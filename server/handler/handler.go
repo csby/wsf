@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/csby/security/certificate"
 	"github.com/csby/wsf/doc"
 	"github.com/csby/wsf/doc/web"
 	"github.com/csby/wsf/router"
@@ -13,6 +14,11 @@ func NewHttpHandler(log types.Log, handler types.HttpHandler) (http.Handler, err
 	instance := &httpHandler{handler: handler, router: router.New()}
 	instance.SetLog(log)
 	instance.rid = &randNumber{id: 0, max: 0}
+	privateKey := &certificate.RSAPrivate{}
+	err := privateKey.Create(1024)
+	if err == nil {
+		instance.randKey = privateKey
+	}
 
 	if handler != nil {
 		var server1erInfo *types.ServerInformation = nil

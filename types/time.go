@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 const (
 	timeFormat = "2006-01-02 15:04:05"
@@ -35,6 +39,51 @@ func (t DateTime) MarshalJSON() ([]byte, error) {
 
 func (t DateTime) String() string {
 	return time.Time(t).Format(timeFormat)
+}
+
+func (t DateTime) Duration() string {
+	sb := &strings.Builder{}
+	duration := time.Now().Sub(time.Time(t))
+
+	days := time.Duration(0)
+	if duration >= time.Hour*24 {
+		days = duration / (time.Hour * 24)
+		duration = duration - days*time.Hour*24
+	}
+	hours := time.Duration(0)
+	if duration >= time.Hour {
+		hours = duration / time.Hour
+		duration = duration - hours*time.Hour
+	}
+	minutes := time.Duration(0)
+	if duration >= time.Minute {
+		minutes = duration / time.Minute
+		duration = duration - minutes*time.Minute
+	}
+	seconds := time.Duration(0)
+	if duration >= time.Second {
+		seconds = duration / time.Second
+		duration = duration - seconds*time.Second
+	}
+
+	if days > 0 {
+		sb.WriteString(fmt.Sprintf("%d天", days))
+		if hours == 0 {
+			sb.WriteString("0时")
+		}
+	}
+	if hours > 0 {
+		sb.WriteString(fmt.Sprintf("%d时", hours))
+		if minutes == 0 {
+			sb.WriteString("0分")
+		}
+	}
+	if minutes > 0 {
+		sb.WriteString(fmt.Sprintf("%d分", minutes))
+	}
+	sb.WriteString(fmt.Sprintf("%d秒", seconds))
+
+	return sb.String()
 }
 
 func (t *DateTime) ToDate(plusDays int) *time.Time {

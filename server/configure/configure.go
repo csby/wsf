@@ -1,6 +1,9 @@
 package configure
 
 type Configure struct {
+	Module    Module    `json:"-" note:"模块信息"`
+	Log       Log       `json:"log" note:"日志"`
+	Service   Service   `json:"svc" note:"系统服务"`
 	Http      Http      `json:"http" note:"HTTP服务"`
 	Https     Https     `json:"https" note:"HTTPS服务"`
 	Tcp       Tcp       `json:"tcp" note:"TCP(TLS)服务"`

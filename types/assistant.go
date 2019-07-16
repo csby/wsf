@@ -37,4 +37,6 @@ type Assistant interface {
 	LeaveTime() time.Time
 	Token() string
 	NewGuid() string
+	RSAPublicKey() string
+	RSADecrypt(data string) (string, error)
 }

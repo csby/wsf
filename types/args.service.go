@@ -69,14 +69,22 @@ func (s *SvcArgs) Execute(server Server) {
 	}
 	svcName := server.ServiceName()
 
-	if s.Uninstall {
+	if s.Install {
+		err := server.Install()
+		if err != nil {
+			fmt.Println("install service ", svcName, " fail: ", err)
+		} else {
+			fmt.Println("install service ", svcName, " success")
+		}
+		os.Exit(21)
+	} else if s.Uninstall {
 		err := server.Uninstall()
 		if err != nil {
 			fmt.Println("uninstall service ", svcName, " fail: ", err)
 		} else {
 			fmt.Println("uninstall service ", svcName, " success")
 		}
-		os.Exit(21)
+		os.Exit(22)
 	} else if s.Status {
 		status, err := server.Status()
 		if err != nil {
@@ -93,7 +101,7 @@ func (s *SvcArgs) Execute(server Server) {
 				fmt.Println("not installed")
 			}
 		}
-		os.Exit(22)
+		os.Exit(23)
 	} else if s.Start {
 		err := server.Start()
 		if err != nil {
@@ -101,7 +109,7 @@ func (s *SvcArgs) Execute(server Server) {
 		} else {
 			fmt.Println("start service ", svcName, " success")
 		}
-		os.Exit(23)
+		os.Exit(24)
 	} else if s.Stop {
 		err := server.Stop()
 		if err != nil {
@@ -109,7 +117,7 @@ func (s *SvcArgs) Execute(server Server) {
 		} else {
 			fmt.Println("stop service ", svcName, " success")
 		}
-		os.Exit(24)
+		os.Exit(25)
 	} else if s.Restart {
 		err := server.Restart()
 		if err != nil {
@@ -117,7 +125,7 @@ func (s *SvcArgs) Execute(server Server) {
 		} else {
 			fmt.Println("restart service ", svcName, " success")
 		}
-		os.Exit(24)
+		os.Exit(26)
 	}
 }
 

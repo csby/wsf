@@ -4,6 +4,7 @@ type Server interface {
 	ServiceName() string
 	Interactive() bool
 	Run() error
+	Shutdown() error
 	Restart() error
 	Start() error
 	Stop() error

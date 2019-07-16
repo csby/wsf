@@ -26,7 +26,7 @@ func Test_wsf(t *testing.T) {
 		case <-err:
 
 		}
-		server.Stop()
+		server.Shutdown()
 	})
 	if err != nil {
 		t.Fatal(err)

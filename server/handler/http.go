@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/csby/security/certificate"
 	"github.com/csby/wsf/router"
 	"github.com/csby/wsf/types"
 	"net"
@@ -17,7 +18,8 @@ type httpHandler struct {
 	handler         types.HttpHandler
 	redirectToHttps bool
 
-	rid types.RandNumber
+	rid     types.RandNumber
+	randKey *certificate.RSAPrivate
 }
 
 func (s *httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +99,7 @@ func (s *httpHandler) newAssistant(w http.ResponseWriter, r *http.Request) *http
 	instance.enterTime = time.Now()
 	instance.path = r.URL.Path
 	instance.rid = s.rid.New()
+	instance.rsaPrivate = s.randKey
 	instance.rip, _, _ = net.SplitHostPort(r.RemoteAddr)
 	instance.restart = s.restart()
 	instance.token = r.Header.Get("token")

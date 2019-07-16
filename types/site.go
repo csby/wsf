@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 )
 
+const (
+	WebappInfoFileName = "webapp.info"
+)
+
 type SiteInfo struct {
 	Url        string   `json:"url" note:"访问地址"`
+	Root       string   `json:"root" note:"物理路径"`
 	Version    string   `json:"version" note:"版本号"`
 	DeployTime DateTime `json:"deployTime" note:"发布时间"`
 }
@@ -18,6 +24,10 @@ type SiteFile struct {
 	Url        string   `json:"url" note:"访问地址"`
 	Name       string   `json:"name" note:"文件名称"`
 	UploadTime DateTime `json:"uploadTime" note:"上传时间"`
+}
+
+type SiteFileFilter struct {
+	Name string `json:"name" note:"文件名称"`
 }
 
 type SiteApp struct {
@@ -29,16 +39,42 @@ type SiteApp struct {
 	Remark     string   `json:"remark" note:"说明"`
 }
 
-func (s *SiteApp) LoadFromFile(filePath string) error {
+func (s *SiteApp) LoadFromFolder(folderPath string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	filePath := filepath.Join(folderPath, WebappInfoFileName)
 	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
 	return json.Unmarshal(bytes, s)
+}
+
+func (s *SiteApp) SaveToFolder(folderPath string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	bytes, err := json.MarshalIndent(s, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	filePath := filepath.Join(folderPath, WebappInfoFileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = fmt.Fprint(file, string(bytes[:]))
+
+	return err
+}
+
+type SiteAppPath struct {
+	Path string `json:"path" note:"应用程序路径, 如test或group/item"`
 }
 
 type SiteAppTree struct {
@@ -75,12 +111,12 @@ func (s *SiteAppTree) ParseChildren(folderPath, baseUrl string) {
 			child.Path = child.getPath()
 			s.Children = append(s.Children, child)
 
-			appInfo := filepath.Join(folderPath, path.Name(), "app.info")
+			appInfo := filepath.Join(folderPath, path.Name())
 			app := &SiteApp{
 				Version:    "1.0.1.0",
 				UploadTime: DateTime(path.ModTime()),
 			}
-			err = app.LoadFromFile(appInfo)
+			err = app.LoadFromFolder(appInfo)
 			if err == nil {
 				child.Type = 1
 				child.Version = app.Version
