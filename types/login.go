@@ -26,10 +26,10 @@ func (s *LoginFilter) Check(captchaRequired bool) error {
 	if strings.TrimSpace(s.Password) == "" {
 		return errors.New("密码为空")
 	}
-	if strings.TrimSpace(s.CaptchaId) == "" {
-		return errors.New("验证码ID为空")
-	}
 	if captchaRequired {
+		if strings.TrimSpace(s.CaptchaId) == "" {
+			return errors.New("验证码ID为空")
+		}
 		if strings.TrimSpace(s.CaptchaValue) == "" {
 			return errors.New("验证码为空")
 		}

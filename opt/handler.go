@@ -9,7 +9,7 @@ import (
 )
 
 type Handler interface {
-	Init(router types.Router, api func(path types.Path, router types.Router, tokenChecker types.TokenChecker) error) error
+	Init(router types.Router, api func(path types.Path, router types.Router, tokenChecker types.RouterPreHandle) error) error
 	NotFound(w http.ResponseWriter, r *http.Request, a types.Assistant)
 }
 
@@ -37,7 +37,7 @@ type handler struct {
 	websocket *controller.Websocket
 }
 
-func (s *handler) Init(router types.Router, api func(path types.Path, router types.Router, tokenChecker types.TokenChecker) error) error {
+func (s *handler) Init(router types.Router, api func(path types.Path, router types.Router, tokenChecker types.RouterPreHandle) error) error {
 	if s.cfg == nil {
 		return fmt.Errorf("opt: invalid config (cfg = nil)")
 	}

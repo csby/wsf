@@ -26,7 +26,7 @@ func NewWebsocket(log types.Log, cfg *configure.Configure, db types.TokenDatabas
 
 	if chs != nil {
 		chs.SetListener(nil, instance.onChannelRemoved)
-		chs.AddReader(instance.onChannelRead)
+		//chs.AddReader(instance.onChannelRead)
 	}
 
 	return instance

@@ -2,6 +2,7 @@ package configure
 
 type Configure struct {
 	Module    Module    `json:"-" note:"模块信息"`
+	Path      string    `json:"-" note:"配置文件路径"`
 	Log       Log       `json:"log" note:"日志"`
 	Service   Service   `json:"svc" note:"系统服务"`
 	Http      Http      `json:"http" note:"HTTP服务"`

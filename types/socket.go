@@ -2,6 +2,7 @@ package types
 
 import (
 	"container/list"
+	"encoding/json"
 	"sync"
 )
 
@@ -20,6 +21,15 @@ const (
 type SocketMessage struct {
 	ID   int         `json:"id" note:"消息标识"`
 	Data interface{} `json:"data" note:"消息内容, 结构随id而定"`
+}
+
+func (s *SocketMessage) GetData(v interface{}) error {
+	data, err := json.Marshal(s.Data)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, v)
 }
 
 type SocketChannel interface {

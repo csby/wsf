@@ -1,7 +1,6 @@
 package types
 
 import (
-	"net/http"
 	"time"
 )
 
@@ -24,8 +23,6 @@ const (
 	TokenValueKindPassword  = 1 // 密码筐
 	TokenValueKindSelection = 2 // 选择筐
 )
-
-type TokenChecker func(w http.ResponseWriter, r *http.Request, p Params, a Assistant) bool
 
 type TokenDatabase interface {
 	Name() string
