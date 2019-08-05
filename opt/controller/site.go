@@ -207,7 +207,7 @@ func (s *Site) OptUpload(w http.ResponseWriter, r *http.Request, p types.Params,
 
 func (s *Site) OptUploadDoc(doc types.Doc, method string, path types.HttpPath) {
 	catalog := s.createCatalog(doc, "网站管理", "后台服务")
-	function := catalog.AddFunction(method, path, "上传网站")
+	function := catalog.AddFunction(method, path, "上传管理网站")
 	function.SetNote("上传网站打包文件(.zip或.tar.gz)，并替换之前已发布的网站")
 	function.SetOutputDataExample(&types.SiteInfo{
 		Url:        "http://192.168.1.1:8080/api/info",
@@ -257,7 +257,7 @@ func (s *Site) DocUpload(w http.ResponseWriter, r *http.Request, p types.Params,
 
 func (s *Site) DocUploadDoc(doc types.Doc, method string, path types.HttpPath) {
 	catalog := s.createCatalog(doc, "网站管理", "接口文档")
-	function := catalog.AddFunction(method, path, "上传网站")
+	function := catalog.AddFunction(method, path, "上传接口文档网站")
 	function.SetNote("上传网站打包文件(.zip或.tar.gz)，并替换之前已发布的网站")
 	function.SetOutputDataExample(&types.SiteInfo{
 		Url:        "http://192.168.1.1:8080/doc/",
@@ -366,7 +366,7 @@ func (s *Site) WebappUpload(w http.ResponseWriter, r *http.Request, p types.Para
 
 func (s *Site) WebappUploadDoc(doc types.Doc, method string, path types.HttpPath) {
 	catalog := s.createCatalog(doc, "网站管理", "网站应用")
-	function := catalog.AddFunction(method, path, "上传网站")
+	function := catalog.AddFunction(method, path, "上传网站应用")
 	function.SetNote("上传网站打包文件(.zip或.tar.gz)，并替换之前已发布的网站")
 	function.SetOutputDataExample(&types.SiteApp{
 		Version:    "1.0.1.0",
@@ -407,7 +407,7 @@ func (s *Site) WebappDelete(w http.ResponseWriter, r *http.Request, p types.Para
 
 func (s *Site) WebappDeleteDoc(doc types.Doc, method string, path types.HttpPath) {
 	catalog := s.createCatalog(doc, "网站管理", "网站应用")
-	function := catalog.AddFunction(method, path, "删除网站")
+	function := catalog.AddFunction(method, path, "删除网站应用")
 	function.SetNote("删除指定路径的应用网站")
 	function.SetInputExample(&types.SiteAppPath{
 		Path: "group/item",
