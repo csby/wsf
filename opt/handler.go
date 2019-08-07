@@ -19,6 +19,7 @@ func NewHandler(log types.Log, cfg *configure.Configure, db types.TokenDatabase,
 	instance.cfg = cfg
 	instance.dbToken = db
 	instance.wsChannels = chs
+	instance.svcMgr = &SvcUpdMgr{}
 
 	return instance
 }
@@ -29,10 +30,12 @@ type handler struct {
 	cfg        *configure.Configure
 	dbToken    types.TokenDatabase
 	wsChannels types.SocketChannelCollection
+	svcMgr     types.SvcUpdMgr
 
 	auth      *controller.Auth
 	monitor   *controller.Monitor
 	service   *controller.Service
+	update    *controller.Update
 	site      *controller.Site
 	websocket *controller.Websocket
 }
@@ -72,7 +75,8 @@ func (s *handler) NotFound(w http.ResponseWriter, r *http.Request, a types.Assis
 func (s *handler) mapOptApi(path types.Path, router types.Router) {
 	s.auth = controller.NewAuth(s.GetLog(), s.cfg, s.dbToken, s.wsChannels)
 	s.monitor = controller.NewMonitor(s.GetLog(), s.cfg)
-	s.service = controller.NewService(s.GetLog(), s.cfg)
+	s.service = controller.NewService(s.GetLog(), s.cfg, s.svcMgr)
+	s.update = controller.NewUpdate(s.GetLog(), s.cfg, s.svcMgr)
 	s.site = controller.NewSite(s.GetLog(), s.cfg, s.dbToken, s.wsChannels, optWebPath.Prefix, webappWebPath.Prefix)
 	s.websocket = controller.NewWebsocket(s.GetLog(), s.cfg, s.dbToken, s.wsChannels)
 
@@ -112,6 +116,20 @@ func (s *handler) mapOptApi(path types.Path, router types.Router) {
 		tokenChecker, s.service.CanUpdate, s.service.CanUpdateDoc)
 	router.POST(path.New("/service/update"),
 		tokenChecker, s.service.Update, s.service.UpdateDoc)
+
+	// 更新管理
+	router.POST(path.New("/update/enable"),
+		tokenChecker, s.update.Enable, s.update.EnableDoc)
+	router.POST(path.New("/update/info"),
+		tokenChecker, s.update.Info, s.update.InfoDoc)
+	router.POST(path.New("/update/restart/enable"),
+		tokenChecker, s.update.CanRestart, s.update.CanRestartDoc)
+	router.POST(path.New("/update/restart"),
+		tokenChecker, s.update.Restart, s.update.RestartDoc)
+	router.POST(path.New("/update/upload/enable"),
+		tokenChecker, s.update.CanUpdate, s.update.CanUpdateDoc)
+	router.POST(path.New("/update/upload"),
+		tokenChecker, s.update.Update, s.update.UpdateDoc)
 
 	// 网站管理
 	router.POST(path.New("/site/root/info"),

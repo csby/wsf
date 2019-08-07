@@ -14,82 +14,76 @@ import (
 	"time"
 )
 
-type Service struct {
+type Update struct {
 	controller
 
-	svcMgr   types.SvcUpdMgr
-	bootTime time.Time
+	svcMgr types.SvcUpdMgr
 }
 
-func NewService(log types.Log, cfg *configure.Configure, svcMgr types.SvcUpdMgr) *Service {
-	instance := &Service{}
+func NewUpdate(log types.Log, cfg *configure.Configure, svcMgr types.SvcUpdMgr) *Update {
+	instance := &Update{}
 	instance.SetLog(log)
 	instance.cfg = cfg
 	instance.svcMgr = svcMgr
 
-	if cfg != nil {
-		instance.bootTime = cfg.Service.BootTime
-	} else {
-		instance.bootTime = time.Now()
-	}
-
 	return instance
 }
 
-func (s *Service) Info(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
-	data := &types.SvcInfo{BootTime: types.DateTime(s.bootTime)}
-	cfg := s.cfg
-	if cfg != nil {
-		data.Name = cfg.Module.Name
-		data.Version = cfg.Module.Version
-		data.Remark = cfg.Module.Remark
-	}
-
-	a.Success(data)
+func (s *Update) serviceName() string {
+	return "wsfupd"
 }
 
-func (s *Service) InfoDoc(doc types.Doc, method string, path types.HttpPath) {
-	catalog := s.createCatalog(doc, "后台服务")
+func (s *Update) EnableDoc(doc types.Doc, method string, path types.HttpPath) {
+	catalog := s.createCatalog(doc, "更新管理")
+	function := catalog.AddFunction(method, path, "是否支持")
+	function.SetNote("判断当前服务是否支持更新管理，当后台服务运行在Windows下时为true，其它为false")
+	function.SetOutputDataExample(false)
+	function.SetInputContentType("")
+}
+
+func (s *Update) InfoDoc(doc types.Doc, method string, path types.HttpPath) {
+	bootTime := types.DateTime(time.Now())
+	catalog := s.createCatalog(doc, "更新管理")
 	function := catalog.AddFunction(method, path, "获取服务信息")
 	function.SetNote("获取当前服务信息")
-	function.SetOutputDataExample(&types.SvcInfo{
+	function.SetOutputDataExample(&types.SvcUpdInfo{
 		Name:     "server",
-		BootTime: types.DateTime(time.Now()),
+		BootTime: &bootTime,
 		Version:  "1.0.1.0",
 		Remark:   "XXX服务",
 	})
 	function.SetInputContentType("")
 }
 
-func (s *Service) CanRestartDoc(doc types.Doc, method string, path types.HttpPath) {
-	catalog := s.createCatalog(doc, "后台服务")
+func (s *Update) CanRestartDoc(doc types.Doc, method string, path types.HttpPath) {
+	catalog := s.createCatalog(doc, "更新管理")
 	function := catalog.AddFunction(method, path, "是否可在线重启")
 	function.SetNote("判断当前服务是否可以在线重启")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
 }
 
-func (s *Service) RestartDoc(doc types.Doc, method string, path types.HttpPath) {
-	catalog := s.createCatalog(doc, "后台服务")
+func (s *Update) RestartDoc(doc types.Doc, method string, path types.HttpPath) {
+	catalog := s.createCatalog(doc, "更新管理")
 	function := catalog.AddFunction(method, path, "重启服务")
 	function.SetNote("重新启动当前服务")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
 }
 
-func (s *Service) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath) {
-	catalog := s.createCatalog(doc, "后台服务")
+func (s *Update) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath) {
+	catalog := s.createCatalog(doc, "更新管理")
 	function := catalog.AddFunction(method, path, "是否可在线更新")
 	function.SetNote("判断当前服务是否可以在线更新")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
 }
 
-func (s *Service) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
-	_, fileName := filepath.Split(s.cfg.Module.Path)
+func (s *Update) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
+	fileName := s.executeFileName()
 	note := fmt.Sprintf("安装包(必须包含文件'%s')", fileName)
 
-	catalog := s.createCatalog(doc, "后台服务")
+	catalog := s.createCatalog(doc, "更新管理")
 	function := catalog.AddFunction(method, path, "更新服务")
 	function.SetNote("上传并更新当前服务")
 	function.SetOutputDataExample(nil)
@@ -97,7 +91,7 @@ func (s *Service) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.AddInputForm(true, "file", note, 1, nil)
 }
 
-func (s *Service) extractUploadFile(w http.ResponseWriter, r *http.Request, a types.Assistant) (string, string, bool) {
+func (s *Update) extractUploadFile(w http.ResponseWriter, r *http.Request, a types.Assistant) (string, string, bool) {
 	uploadFile, _, err := r.FormFile("file")
 	if err != nil {
 		a.Error(types.ErrInputInvalid, "invalid file: ", err)
@@ -116,7 +110,7 @@ func (s *Service) extractUploadFile(w http.ResponseWriter, r *http.Request, a ty
 		return "", "", false
 	}
 
-	binFileFolder, oldBinFileName := filepath.Split(s.cfg.Module.Path)
+	binFileFolder, _ := filepath.Split(s.cfg.Module.Path)
 	tempFolder := filepath.Join(binFileFolder, a.NewGuid())
 	err = os.MkdirAll(tempFolder, 0777)
 	if err != nil {
@@ -136,19 +130,19 @@ func (s *Service) extractUploadFile(w http.ResponseWriter, r *http.Request, a ty
 		}
 	}
 
-	newBinFilePath, err := s.getBinFilePath(tempFolder, oldBinFileName)
+	newBinFilePath, err := s.getBinFilePath(tempFolder, s.executeFileName())
 	if err != nil {
 		a.Error(types.ErrInputInvalid, err)
 		return "", tempFolder, false
 	}
 	module := &types.Module{Path: newBinFilePath}
 	moduleName := module.Name()
-	if moduleName != s.cfg.Module.Name {
+	if moduleName != s.moduleName() {
 		a.Error(types.ErrInputInvalid, fmt.Sprintf("模块名称(%s)无效", moduleName))
 		return "", tempFolder, false
 	}
 	moduleType := module.Type()
-	if moduleType != s.cfg.Module.Type {
+	if moduleType != s.moduleType() {
 		a.Error(types.ErrInputInvalid, fmt.Sprintf("模块名称(%s)无效", moduleType))
 		return "", tempFolder, false
 	}
@@ -156,28 +150,7 @@ func (s *Service) extractUploadFile(w http.ResponseWriter, r *http.Request, a ty
 	return newBinFilePath, tempFolder, true
 }
 
-func (s *Service) copyFile(source, dest string) (int64, error) {
-	sourceFile, err := os.Open(source)
-	if err != nil {
-		return 0, err
-	}
-	defer sourceFile.Close()
-
-	sourceFileInfo, err := sourceFile.Stat()
-	if err != nil {
-		return 0, err
-	}
-
-	destFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, sourceFileInfo.Mode())
-	if err != nil {
-		return 0, err
-	}
-	defer destFile.Close()
-
-	return io.Copy(destFile, sourceFile)
-}
-
-func (s *Service) getBinFilePath(folderPath, fileName string) (string, error) {
+func (s *Update) getBinFilePath(folderPath, fileName string) (string, error) {
 	paths, err := ioutil.ReadDir(folderPath)
 	if err != nil {
 		return "", err
@@ -198,4 +171,33 @@ func (s *Service) getBinFilePath(folderPath, fileName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("服务主程序(%s)不存在", fileName)
+}
+
+func (s *Update) copyFile(source, dest string) (int64, error) {
+	sourceFile, err := os.Open(source)
+	if err != nil {
+		return 0, err
+	}
+	defer sourceFile.Close()
+
+	sourceFileInfo, err := sourceFile.Stat()
+	if err != nil {
+		return 0, err
+	}
+
+	destFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, sourceFileInfo.Mode())
+	if err != nil {
+		return 0, err
+	}
+	defer destFile.Close()
+
+	return io.Copy(destFile, sourceFile)
+}
+
+func (s *Update) moduleType() string {
+	return "server"
+}
+
+func (s *Update) moduleName() string {
+	return "wsfupd"
 }

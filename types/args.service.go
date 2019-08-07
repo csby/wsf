@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -134,4 +135,118 @@ type SvcInfo struct {
 	Version  string   `json:"version" note:"版本号"`
 	BootTime DateTime `json:"bootTime" note:"启动时间"`
 	Remark   string   `json:"remark" note:"说明"`
+}
+
+type SvcUpdInfo struct {
+	Name     string    `json:"name" note:"服务名称"`
+	Version  string    `json:"version" note:"版本号"`
+	BootTime *DateTime `json:"bootTime" note:"启动时间"`
+	Remark   string    `json:"remark" note:"说明"`
+	Status   int       `json:"status" note:"0-未安装; 1-已停止; 2-运行中"`
+}
+
+type SvcUpdMgr interface {
+	Start(name string) error
+	Stop(name string) error
+	Restart(name string) error
+	Status(name string) (ServerStatus, error)
+	Install(name, path string) error
+	RemoteInfo() (*SvcUpdResult, error)
+	RemoteRestart(name string) error
+	RemoteUpdate(name, path, updateFile, updateFolder string) error
+}
+
+type SvcUpdArgs struct {
+	Action       string `json:"action" note:"info or update or restart"`
+	Name         string `json:"name" note:"service name"`
+	Path         string `json:"path" note:"execute file path"`
+	UpdateFolder string `json:"updateFolder" note:"temp folder to be deleted"`
+	UpdateFile   string `json:"updateFile" note:"path of the new execute file"`
+}
+
+type SvcUpdResult struct {
+	Code        int       `json:"code" note:"0-success; other means fail"`
+	Error       string    `json:"error" note:"error message"`
+	Name        string    `json:"name" note:"service name"`
+	Path        string    `json:"path" note:"execute file path"`
+	BootTime    *DateTime `json:"bootTime"`
+	Version     string    `json:"version"`
+	Remark      string    `json:"remark"`
+	Interactive bool      `json:"interactive" note:"false means run in service mode"`
+}
+
+type SvcUpd struct {
+	Name string
+	Mgr  SvcUpdMgr
+}
+
+func (s *SvcUpd) Update(path, updateFile, updateFolder string) error {
+	if len(s.Name) < 1 {
+		return fmt.Errorf("invalid name")
+	}
+	if s.Mgr == nil {
+		return fmt.Errorf("invalid mgr")
+	}
+
+	status, err := s.Mgr.Status(s.Name)
+	if err != nil {
+		return fmt.Errorf("get service '%s' status error: %v", s.Name, err)
+	}
+
+	if status == ServerStatusRunning {
+		err := s.Mgr.Stop(s.Name)
+		if err != nil {
+			return fmt.Errorf("stop service '%s' error: %v", s.Name, err)
+		}
+	}
+
+	_, err = os.Stat(path)
+	if !os.IsNotExist(err) {
+		err = os.Remove(path)
+		if err != nil {
+			return fmt.Errorf("delete exxcute file '%s' error: %v", path, err)
+		}
+	}
+
+	_, err = s.copyFile(updateFile, path)
+	if err != nil {
+		return fmt.Errorf("copy file error: %v", err)
+	}
+
+	err = s.Mgr.Start(s.Name)
+	if err != nil {
+		return fmt.Errorf("start service '%s' error: %v", s.Name, err)
+	}
+
+	if len(updateFolder) > 0 {
+		_, err = os.Stat(updateFolder)
+		if !os.IsNotExist(err) {
+			if 0 == strings.Index(updateFile, updateFolder) {
+				os.RemoveAll(updateFolder)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *SvcUpd) copyFile(source, dest string) (int64, error) {
+	sourceFile, err := os.Open(source)
+	if err != nil {
+		return 0, err
+	}
+	defer sourceFile.Close()
+
+	sourceFileInfo, err := sourceFile.Stat()
+	if err != nil {
+		return 0, err
+	}
+
+	destFile, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, sourceFileInfo.Mode())
+	if err != nil {
+		return 0, err
+	}
+	defer destFile.Close()
+
+	return io.Copy(destFile, sourceFile)
 }
