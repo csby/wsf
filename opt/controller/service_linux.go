@@ -56,7 +56,7 @@ func (s *Service) update(w http.ResponseWriter, r *http.Request, a types.Assista
 		if len(folder) > 0 {
 			os.RemoveAll(folder)
 		}
-		return
+		return false
 	}
 	defer os.RemoveAll(folder)
 
@@ -66,7 +66,7 @@ func (s *Service) update(w http.ResponseWriter, r *http.Request, a types.Assista
 	}
 
 	oldBinFilePath := s.cfg.Module.Path
-	err = os.Remove(oldBinFilePath)
+	err := os.Remove(oldBinFilePath)
 	if err != nil {
 		a.Error(types.ErrInternal, err)
 		return false
