@@ -93,6 +93,7 @@ func (s *Auth) GetCaptchaDoc(doc types.Doc, method string, path types.HttpPath) 
 		RsaPublicKey: "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
 		Required:     false,
 	})
+	function.AddOutputError(types.ErrInput)
 }
 
 func (s *Auth) Login(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -153,6 +154,10 @@ func (s *Auth) LoginDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetOutputDataExample(&types.Login{
 		Token: "71b9b7e2ac6d4166b18f414942ff3481",
 	})
+	function.AddOutputError(types.ErrInput)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrLoginCaptchaInvalid)
+	function.AddOutputError(types.ErrLoginPasswordInvalid)
 }
 
 func (s *Auth) Logout(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -181,6 +186,7 @@ func (s *Auth) LogoutDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetNote("退出登录, 使当前凭证失效")
 	function.SetOutputDataExample(nil)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Auth) GetLoginAccount(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -206,6 +212,8 @@ func (s *Auth) GetLoginAccountDoc(doc types.Doc, method string, path types.HttpP
 		LoginTime: types.DateTime(time.Now()),
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Auth) GetOnlineUsers(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -230,6 +238,8 @@ func (s *Auth) GetOnlineUsersDoc(doc types.Doc, method string, path types.HttpPa
 		},
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Auth) Authenticate(a types.Assistant, account, password string) (*types.Login, types.ErrorCode, error) {

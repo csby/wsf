@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/csby/wsf/types"
+	"sort"
 	"strings"
 )
 
@@ -31,6 +32,7 @@ type Function struct {
 	OutputHeaders []*Header   `json:"outputHeaders"` // 输出头部
 	OutputModel   *Argument   `json:"outputModel"`   // 输出数据
 	OutputSample  interface{} `json:"outputSample"`  // 输出数据示例
+	OutputErrors  ErrorSlice  `json:"outputErrors"`  // 输出错误代码
 
 	TokenUI     func() []types.TokenUI                                                            `json:"-"`
 	TokenCreate func(items []types.TokenAuth, a types.Assistant) (string, types.ErrorCode, error) `json:"-"`
@@ -217,6 +219,27 @@ func (s *Function) ClearOutputHeader() {
 	s.OutputHeaders = make([]*Header, 0)
 }
 
+func (s *Function) AddOutputError(err types.ErrorCode) {
+	if err == nil {
+		return
+	}
+	s.AddOutputErrorCustom(err.Code(), err.Summary())
+}
+
+func (s *Function) AddOutputErrorCustom(code int, summary string) {
+	count := len(s.OutputErrors)
+	for index := 0; index < count; index++ {
+		item := s.OutputErrors[index]
+		if item.Code == code {
+			item.Summary = summary
+			return
+		}
+	}
+
+	s.OutputErrors = append(s.OutputErrors, &Error{Code: code, Summary: summary})
+	sort.Sort(s.OutputErrors)
+}
+
 func (s *Function) SetOutputExample(v interface{}) {
 	s.OutputSample = v
 	s.OutputModel = modelArgument.FromExample(v)
@@ -233,6 +256,7 @@ func (s *Function) SetOutputDataExample(v interface{}) {
 		Data: v,
 	}
 	s.OutputModel = modelArgument.FromExample(s.OutputSample)
+	s.AddOutputError(types.ErrException)
 }
 
 func (s *Function) GetInputHeader(name string) *Header {

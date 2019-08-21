@@ -39,6 +39,7 @@ func (s *Update) EnableDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetNote("判断当前服务是否支持更新管理，当后台服务运行在Windows下时为true，其它为false")
 	function.SetOutputDataExample(false)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) InfoDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -53,6 +54,7 @@ func (s *Update) InfoDoc(doc types.Doc, method string, path types.HttpPath) {
 		Remark:   "XXX服务",
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) CanRestartDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -61,6 +63,7 @@ func (s *Update) CanRestartDoc(doc types.Doc, method string, path types.HttpPath
 	function.SetNote("判断当前服务是否可以在线重启")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) RestartDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -69,6 +72,8 @@ func (s *Update) RestartDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetNote("重新启动当前服务")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrNotSupport)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -77,6 +82,7 @@ func (s *Update) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath)
 	function.SetNote("判断当前服务是否可以在线更新")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -89,6 +95,9 @@ func (s *Update) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetOutputDataExample(nil)
 	function.SetInputContentType("multipart/form-data")
 	function.AddInputForm(true, "file", note, 1, nil)
+	function.AddOutputError(types.ErrNotSupport)
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Update) extractUploadFile(w http.ResponseWriter, r *http.Request, a types.Assistant) (string, string, bool) {

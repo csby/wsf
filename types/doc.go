@@ -19,6 +19,8 @@ type Function interface {
 	ClearOutputHeader()
 	SetOutputExample(v interface{})
 	SetOutputDataExample(v interface{})
+	AddOutputError(err ErrorCode)
+	AddOutputErrorCustom(code int, summary string)
 }
 
 type Catalog interface {

@@ -138,6 +138,7 @@ func (s *Websocket) NotifyDoc(doc types.Doc, method string, path types.HttpPath)
 	function.SetOutputExample(&types.SocketMessage{ID: 1})
 	function.SetInputExample(&types.SocketMessage{ID: 1})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Websocket) checkOrigin(r *http.Request) bool {

@@ -72,6 +72,7 @@ func (s *Catalog) AddFunction(method string, httpPath types.HttpPath, name strin
 	fuc.InputQueries = make([]*Query, 0)
 	fuc.InputForms = make([]*Form, 0)
 	fuc.OutputHeaders = make([]*Header, 0)
+	fuc.OutputErrors = make(ErrorSlice, 0)
 	fuc.SetTokenType(httpPath.TokenType())
 	if method == "POST" {
 		fuc.SetInputContentType(types.ContentTypeJson)

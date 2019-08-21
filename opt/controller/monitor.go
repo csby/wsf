@@ -47,6 +47,8 @@ func (s *Monitor) GetHostDoc(doc types.Doc, method string, path types.HttpPath) 
 		TimeZone:        "GST+08",
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Monitor) GetNetworkInterfaces(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -79,6 +81,8 @@ func (s *Monitor) GetNetworkInterfacesDoc(doc types.Doc, method string, path typ
 		},
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Monitor) GetNetworkListenPorts(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -103,4 +107,5 @@ func (s *Monitor) GetNetworkListenPortsDoc(doc types.Doc, method string, path ty
 		},
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }

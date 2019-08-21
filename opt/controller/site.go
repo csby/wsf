@@ -73,6 +73,8 @@ func (s *Site) RootInfoDoc(doc types.Doc, method string, path types.HttpPath) {
 		},
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) RootUploadFile(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -132,6 +134,8 @@ func (s *Site) RootUploadFileDoc(doc types.Doc, method string, path types.HttpPa
 	function.SetOutputDataExample(string("http://192.168.1.1:8080/test.txt"))
 	function.SetInputContentType("multipart/form-data")
 	function.AddInputForm(true, "file", "文件", 1, nil)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) RootDeleteFile(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -166,6 +170,8 @@ func (s *Site) RootDeleteFileDoc(doc types.Doc, method string, path types.HttpPa
 		Name: "test.txt",
 	})
 	function.SetOutputDataExample(nil)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) OptInfo(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -188,6 +194,9 @@ func (s *Site) OptInfoDoc(doc types.Doc, method string, path types.HttpPath) {
 		DeployTime: types.DateTime(time.Now()),
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) OptUpload(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -216,6 +225,9 @@ func (s *Site) OptUploadDoc(doc types.Doc, method string, path types.HttpPath) {
 	})
 	function.SetInputContentType("multipart/form-data")
 	function.AddInputForm(true, "file", "网站打包文件(.zip或.tar.gz)", 1, nil)
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) DocInfo(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -238,6 +250,8 @@ func (s *Site) DocInfoDoc(doc types.Doc, method string, path types.HttpPath) {
 		DeployTime: types.DateTime(time.Now()),
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) DocUpload(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -291,6 +305,7 @@ func (s *Site) WebappInfoDoc(doc types.Doc, method string, path types.HttpPath) 
 		},
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) WebappUpload(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -379,6 +394,9 @@ func (s *Site) WebappUploadDoc(doc types.Doc, method string, path types.HttpPath
 	function.AddInputForm(true, "path", "路径，如test或group/item", 0, "")
 	function.AddInputForm(false, "version", "版本，如1.0.1.0", 0, "")
 	function.AddInputForm(false, "remark", "说明，如XXX网站原型", 0, "")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) WebappDelete(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
@@ -413,6 +431,8 @@ func (s *Site) WebappDeleteDoc(doc types.Doc, method string, path types.HttpPath
 		Path: "group/item",
 	})
 	function.SetOutputDataExample(nil)
+	function.AddOutputError(types.ErrInputInvalid)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Site) upload(root string, w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) bool {

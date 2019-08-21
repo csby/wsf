@@ -59,6 +59,7 @@ func (s *Service) InfoDoc(doc types.Doc, method string, path types.HttpPath) {
 		Remark:   "XXX服务",
 	})
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Service) CanRestartDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -67,6 +68,7 @@ func (s *Service) CanRestartDoc(doc types.Doc, method string, path types.HttpPat
 	function.SetNote("判断当前服务是否可以在线重启")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Service) RestartDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -75,6 +77,7 @@ func (s *Service) RestartDoc(doc types.Doc, method string, path types.HttpPath) 
 	function.SetNote("重新启动当前服务")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Service) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -83,6 +86,7 @@ func (s *Service) CanUpdateDoc(doc types.Doc, method string, path types.HttpPath
 	function.SetNote("判断当前服务是否可以在线更新")
 	function.SetOutputDataExample(true)
 	function.SetInputContentType("")
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Service) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
@@ -95,6 +99,9 @@ func (s *Service) UpdateDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.SetOutputDataExample(nil)
 	function.SetInputContentType("multipart/form-data")
 	function.AddInputForm(true, "file", note, 1, nil)
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrNotSupport)
+	function.AddOutputError(types.ErrTokenInvalid)
 }
 
 func (s *Service) extractUploadFile(w http.ResponseWriter, r *http.Request, a types.Assistant) (string, string, bool) {
