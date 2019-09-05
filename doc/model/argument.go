@@ -79,12 +79,17 @@ func (s *Argument) parseExample(v reflect.Value, argument *Argument) {
 	switch k {
 	case reflect.Ptr:
 		{
+			if argument.Type == "" {
+				argument.Type = t.String()
+			}
 			s.parseExample(v.Elem(), argument)
 			break
 		}
 	case reflect.Interface:
 		{
-			argument.Type = k.String()
+			if argument.Type == "" {
+				argument.Type = k.String()
+			}
 			if v.CanInterface() {
 				value := reflect.ValueOf(v.Interface())
 				if value.Kind() != reflect.Invalid {
@@ -133,10 +138,10 @@ func (s *Argument) parseExample(v reflect.Value, argument *Argument) {
 					value := reflect.ValueOf(valueField.Interface())
 					if value.Kind() != reflect.Invalid {
 						child.Type = value.Type().Name()
+						s.parseExample(value, child)
 						if child.Type == "" {
 							child.Type = valueField.Type().String()
 						}
-						s.parseExample(value, child)
 					}
 				}
 			}
@@ -192,4 +197,65 @@ func (s *Argument) parseExample(v reflect.Value, argument *Argument) {
 		}
 	}
 
+}
+
+func (s *Argument) ToModel() []*Model {
+	results := make([]*Model, 0)
+	model := &Model{
+		Name:     s.typeToKind(s.Type),
+		Children: make([]*Item, 0),
+	}
+	types := make(map[string]string)
+	s.toModel(&results, model, s.Children, types)
+
+	return results
+}
+
+func (s *Argument) toModel(results *[]*Model, model *Model, children []*Argument, types map[string]string) {
+	childCount := len(children)
+	if childCount < 1 {
+		return
+	}
+
+	_, ok := types[model.Name]
+	if ok {
+		return
+	}
+	types[model.Name] = ""
+	if !strings.Contains(model.Name, "[]") {
+		*results = append(*results, model)
+	}
+
+	for childIndex := 0; childIndex < childCount; childIndex++ {
+		child := children[childIndex]
+		if child == nil {
+			continue
+		}
+
+		item := &Item{}
+		child.copyTo(item)
+		model.Children = append(model.Children, item)
+		if len(child.Children) > 0 {
+			childModel := &Model{
+				Name:     s.typeToKind(child.Type),
+				Children: make([]*Item, 0),
+			}
+			s.toModel(results, childModel, child.Children, types)
+		}
+	}
+}
+
+func (s *Argument) typeToKind(name string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(name, "*", ""), "{}", "")
+}
+
+func (s *Argument) copyTo(target *Item) {
+	if target == nil {
+		return
+	}
+
+	target.Name = s.Name
+	target.Type = s.Type
+	target.Note = s.Note
+	target.Required = s.Required
 }

@@ -27,10 +27,10 @@ type Function struct {
 	InputHeaders  []*Header   `json:"inputHeaders"`  // 输入头部
 	InputQueries  []*Query    `json:"inputQueries"`  // 输入参数
 	InputForms    []*Form     `json:"inputForms"`    // 输入表单
-	InputModel    *Argument   `json:"inputModel"`    // 输入数据
+	InputModel    []*Model    `json:"inputModel"`    // 输入数据
 	InputSample   interface{} `json:"inputSample"`   // 输入数据示例
 	OutputHeaders []*Header   `json:"outputHeaders"` // 输出头部
-	OutputModel   *Argument   `json:"outputModel"`   // 输出数据
+	OutputModel   []*Model    `json:"outputModel"`   // 输出数据
 	OutputSample  interface{} `json:"outputSample"`  // 输出数据示例
 	OutputErrors  ErrorSlice  `json:"outputErrors"`  // 输出错误代码
 
@@ -200,7 +200,12 @@ func (s *Function) RemoveInputForm(key string) {
 
 func (s *Function) SetInputExample(v interface{}) {
 	s.InputSample = v
-	s.InputModel = modelArgument.FromExample(v)
+	argument := modelArgument.FromExample(v)
+	if argument != nil {
+		s.InputModel = argument.ToModel()
+	} else {
+		s.InputModel = make([]*Model, 0)
+	}
 }
 
 func (s *Function) AddOutputHeader(name, value string) {
@@ -242,7 +247,12 @@ func (s *Function) AddOutputErrorCustom(code int, summary string) {
 
 func (s *Function) SetOutputExample(v interface{}) {
 	s.OutputSample = v
-	s.OutputModel = modelArgument.FromExample(v)
+	argument := modelArgument.FromExample(v)
+	if argument != nil {
+		s.OutputModel = argument.ToModel()
+	} else {
+		s.OutputModel = make([]*Model, 0)
+	}
 }
 
 func (s *Function) SetOutputDataExample(v interface{}) {
@@ -255,7 +265,12 @@ func (s *Function) SetOutputDataExample(v interface{}) {
 		},
 		Data: v,
 	}
-	s.OutputModel = modelArgument.FromExample(s.OutputSample)
+	argument := modelArgument.FromExample(s.OutputSample)
+	if argument != nil {
+		s.OutputModel = argument.ToModel()
+	} else {
+		s.OutputModel = make([]*Model, 0)
+	}
 	s.AddOutputError(types.ErrException)
 }
 

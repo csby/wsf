@@ -25,6 +25,22 @@ func TestArgument_FromExample(t *testing.T) {
 	t.Logf("%v", toJson(example))
 }
 
+func TestArgument_FromExample_Anonymous(t *testing.T) {
+	argument := &Argument{}
+
+	argsChild := &ArgsChild{
+		ArgsParent: ArgsParent{
+			ParentId: "12",
+		},
+		ChildId: uint(50),
+	}
+	example := argument.FromExample(argsChild)
+	t.Logf("%v", toJson(example))
+
+	models := example.ToModel()
+	t.Logf("%v", toJson(models))
+}
+
 type ArgumentBase struct {
 	Name   string      `json:"name" note:"名称(Base)"`
 	Value  int         `json:"value" note:"值(base)-int"`
@@ -50,4 +66,14 @@ func toJson(v interface{}) string {
 	}
 
 	return string(bytes[:])
+}
+
+type ArgsParent struct {
+	ParentId string `json:"parentId" required:"true" note:"父ID"`
+}
+
+type ArgsChild struct {
+	ArgsParent
+
+	ChildId interface{} `json:"childId" required:"false" note:"子ID"`
 }
