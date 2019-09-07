@@ -13,6 +13,13 @@ const (
 	WebappInfoFileName = "webapp.info"
 )
 
+type Site interface {
+	Enable() bool
+	Path() string // 站点路径, 如“/doc”
+	Name() string // 站点名称
+	Root() string // 物理路径
+}
+
 type SiteInfo struct {
 	Url        string   `json:"url" note:"访问地址"`
 	Root       string   `json:"root" note:"物理路径"`

@@ -22,9 +22,10 @@ type Site struct {
 
 	optPath    string
 	webappPath string
+	custom     types.Site
 }
 
-func NewSite(log types.Log, cfg *configure.Configure, db types.TokenDatabase, chs types.SocketChannelCollection, optPath, webappPath string) *Site {
+func NewSite(log types.Log, cfg *configure.Configure, db types.TokenDatabase, chs types.SocketChannelCollection, optPath, webappPath string, custom types.Site) *Site {
 	instance := &Site{}
 	instance.SetLog(log)
 	instance.cfg = cfg
@@ -32,6 +33,7 @@ func NewSite(log types.Log, cfg *configure.Configure, db types.TokenDatabase, ch
 	instance.wsChannels = chs
 	instance.optPath = optPath
 	instance.webappPath = webappPath
+	instance.custom = custom
 
 	return instance
 }
@@ -282,6 +284,112 @@ func (s *Site) DocUploadDoc(doc types.Doc, method string, path types.HttpPath) {
 	function.AddInputForm(true, "file", "网站打包文件(.zip或.tar.gz)", 1, nil)
 }
 
+func (s *Site) CustomEnable(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
+	if s.custom != nil {
+		if s.custom.Enable() {
+			a.Success(s.custom.Name())
+			return
+		}
+	}
+
+	a.Error(types.ErrNotSupport)
+}
+
+func (s *Site) CustomEnableDoc(doc types.Doc, method string, path types.HttpPath) {
+	catalog := s.createCatalog(doc, "网站管理")
+	function := catalog.AddFunction(method, path, "是否允许自定义网站")
+	function.SetNote("判断是否允许自定义网站进行管理，返回的数据为自定义网站名称")
+	function.SetOutputDataExample("我的网站")
+	function.SetInputContentType("")
+	function.AddOutputError(types.ErrNotSupport)
+}
+
+func (s *Site) CustomInfo(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
+	if s.custom == nil {
+		a.Error(types.ErrNotSupport)
+		return
+	}
+	if !s.custom.Enable() {
+		a.Error(types.ErrNotSupport)
+		return
+	}
+
+	data, err := s.getInfo(s.custom.Root(), s.custom.Path(), r.Host, a.Schema())
+	if err != nil {
+		a.Error(types.ErrInternal, err)
+		return
+	}
+
+	a.Success(data)
+}
+
+func (s *Site) CustomInfoDoc(doc types.Doc, method string, path types.HttpPath) {
+	if s.custom == nil {
+		return
+	}
+	if !s.custom.Enable() {
+		return
+	}
+
+	catalog := s.createCatalog(doc, "网站管理", fmt.Sprint(s.custom.Name()))
+	function := catalog.AddFunction(method, path, fmt.Sprintf("获取%s网站信息", s.custom.Name()))
+	function.SetNote(fmt.Sprintf("获取%s网站信息，包括访问地址及版本等", s.custom.Name()))
+	function.SetOutputDataExample(&types.SiteInfo{
+		Url:        fmt.Sprintf("http://192.168.1.1:8080%s/", s.custom.Path()),
+		Version:    "1.0.1.0",
+		DeployTime: types.DateTime(time.Now()),
+	})
+	function.SetInputContentType("")
+	function.AddOutputError(types.ErrInternal)
+	function.AddOutputError(types.ErrTokenInvalid)
+	function.AddOutputError(types.ErrNotSupport)
+}
+
+func (s *Site) CustomUpload(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
+	if s.custom == nil {
+		a.Error(types.ErrNotSupport)
+		return
+	}
+	if !s.custom.Enable() {
+		a.Error(types.ErrNotSupport)
+		return
+	}
+
+	root := s.custom.Root()
+	if !s.upload(root, w, r, p, a) {
+		return
+	}
+
+	path := s.custom.Path()
+	data, _ := s.getInfo(root, path, r.Host, a.Schema())
+	a.Success(data)
+
+	if data != nil {
+		s.writeWebSocketMessage(a.Token(), types.WSCustomSiteUpload, data)
+	}
+}
+
+func (s *Site) CustomUploadDoc(doc types.Doc, method string, path types.HttpPath) {
+	if s.custom == nil {
+		return
+	}
+	if !s.custom.Enable() {
+		return
+	}
+
+	catalog := s.createCatalog(doc, "网站管理", fmt.Sprint(s.custom.Name()))
+	function := catalog.AddFunction(method, path, fmt.Sprintf("上传%s网站", s.custom.Name()))
+	function.SetNote("上传网站打包文件(.zip或.tar.gz)，并替换之前已发布的网站")
+	function.SetOutputDataExample(&types.SiteInfo{
+		Url:        fmt.Sprintf("http://192.168.1.1:8080%s/", s.custom.Path()),
+		Version:    "1.0.1.0",
+		DeployTime: types.DateTime(time.Now()),
+	})
+	function.SetInputContentType("multipart/form-data")
+	function.AddInputForm(true, "file", "网站打包文件(.zip或.tar.gz)", 1, nil)
+	function.AddOutputError(types.ErrNotSupport)
+}
+
 func (s *Site) WebappInfo(w http.ResponseWriter, r *http.Request, p types.Params, a types.Assistant) {
 	baseUrl := fmt.Sprintf("%s://%s%s", a.Schema(), r.Host, s.webappPath)
 	data := &types.SiteAppTree{}
@@ -473,8 +581,16 @@ func (s *Site) upload(root string, w http.ResponseWriter, r *http.Request, p typ
 			return false
 		}
 	}
+	newId, _ := s.getId(tempFolder)
 
 	uploadFolder := root
+	oldId, _ := s.getId(uploadFolder)
+	if len(oldId) > 0 {
+		if newId != oldId {
+			a.Error(types.ErrInputInvalid, fmt.Sprintf("上传的网站(id=%s)不匹配，期望(id=%s)", newId, oldId))
+			return false
+		}
+	}
 	err = os.RemoveAll(uploadFolder)
 	if err != nil {
 		a.Error(types.ErrInternal, "remove original site error: ", err)
@@ -552,4 +668,17 @@ func (s *Site) getVersion(folderPath string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func (s *Site) getId(folderPath string) (string, error) {
+	/*
+		9A09B4DFDA82E3E665E31092D1C3EC8D
+	*/
+	filePath := filepath.Join(folderPath, "id.txt")
+	bs, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(bs)), nil
 }

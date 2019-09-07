@@ -13,13 +13,14 @@ type Handler interface {
 	NotFound(w http.ResponseWriter, r *http.Request, a types.Assistant)
 }
 
-func NewHandler(log types.Log, cfg *configure.Configure, db types.TokenDatabase, chs types.SocketChannelCollection) Handler {
+func NewHandler(log types.Log, cfg *configure.Configure, db types.TokenDatabase, chs types.SocketChannelCollection, customSite types.Site) Handler {
 	instance := &handler{}
 	instance.SetLog(log)
 	instance.cfg = cfg
 	instance.dbToken = db
 	instance.wsChannels = chs
 	instance.svcMgr = &SvcUpdMgr{}
+	instance.custom = customSite
 
 	return instance
 }
@@ -31,6 +32,7 @@ type handler struct {
 	dbToken    types.TokenDatabase
 	wsChannels types.SocketChannelCollection
 	svcMgr     types.SvcUpdMgr
+	custom     types.Site
 
 	auth      *controller.Auth
 	monitor   *controller.Monitor
@@ -77,7 +79,7 @@ func (s *handler) mapOptApi(path types.Path, router types.Router) {
 	s.monitor = controller.NewMonitor(s.GetLog(), s.cfg)
 	s.service = controller.NewService(s.GetLog(), s.cfg, s.svcMgr)
 	s.update = controller.NewUpdate(s.GetLog(), s.cfg, s.svcMgr)
-	s.site = controller.NewSite(s.GetLog(), s.cfg, s.dbToken, s.wsChannels, optWebPath.Prefix, webappWebPath.Prefix)
+	s.site = controller.NewSite(s.GetLog(), s.cfg, s.dbToken, s.wsChannels, optWebPath.Prefix, webappWebPath.Prefix, s.custom)
 	s.websocket = controller.NewWebsocket(s.GetLog(), s.cfg, s.dbToken, s.wsChannels)
 
 	tokenChecker := s.auth.CheckToken
@@ -146,6 +148,12 @@ func (s *handler) mapOptApi(path types.Path, router types.Router) {
 		tokenChecker, s.site.DocInfo, s.site.DocInfoDoc)
 	router.POST(path.New("/site/doc/upload"),
 		tokenChecker, s.site.DocUpload, s.site.DocUploadDoc)
+	router.POST(path.New("/site/custom/enable"),
+		tokenChecker, s.site.CustomEnable, s.site.CustomEnableDoc)
+	router.POST(path.New("/site/custom/info"),
+		tokenChecker, s.site.CustomInfo, s.site.CustomInfoDoc)
+	router.POST(path.New("/site/custom/upload"),
+		tokenChecker, s.site.CustomUpload, s.site.CustomUploadDoc)
 	router.POST(path.New("/site/webapp/info"),
 		tokenChecker, s.site.WebappInfo, s.site.WebappInfoDoc)
 	router.POST(path.New("/site/webapp/upload"),

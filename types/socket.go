@@ -16,6 +16,7 @@ const (
 	WSRootSiteDeleteFile = 114 // 根站点-删除文件
 	WSWebappSiteUpload   = 115 // 上传并发布后应用网站
 	WSWebappSiteDelete   = 116 // 删除应用网站
+	WSCustomSiteUpload   = 119 // 上传并发布自定义网站
 )
 
 type SocketMessage struct {
